@@ -20,12 +20,12 @@ multiplique intermedia
 almacene respuesta
 cargue intermedia
 reste unidad
-// vayasi ciclo fin
-// etiqueta ciclo 9
-// etiqueta fin 21
-// muestre respuesta
-// imprima respuesta
-// retorne 0
+vayasi ciclo fin
+etiqueta ciclo 9
+etiqueta fin 21
+muestre respuesta
+imprima respuesta
+retorne 0
 
 `.split("\n").map(line => "<p>" + line + "</p>").join("").trim();
 export class Editor extends CH {
@@ -50,9 +50,9 @@ export class Editor extends CH {
     }
 
     parsedText = string => {
-        return string.replace(/(\<br\>)+/g, "")
-            .replace(/(\<p\>)+/g, "")
-            .replace(/\<\/p\>/g, "\n")
+        return string.replace(/(<br>)+/g, "")
+            .replace(/(<p>)+/g, "")
+            .replace(/<\/p>/g, "\n")
             .replace(/\n{2,}/g, "\n")
             .trim();
     }

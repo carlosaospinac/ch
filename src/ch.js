@@ -20,12 +20,9 @@ export class CH extends React.Component {
         currentProgramIndex: 0,
         instructions: [],
         currentInstructionIndex: 0,
+        tags: {},
         errors: [],
         memory: [],  // <-- Arreglo de memoria
-    }
-
-    constructor(props) {
-        super(props);
     }
 
     componentWillReceiveProps = ({programs}) => {
@@ -45,7 +42,7 @@ export class CH extends React.Component {
     initMemory = () => {
         let { memory, kernelLength, memoryLength } = this.state;
         memory = [{
-            type: "acumulator",
+            type: "accumulator",
             name: "acumulador",
             value: 0
         }];
@@ -110,7 +107,7 @@ export class CH extends React.Component {
             }
             const lines = program.text.split("\n");
             if (lines.length > this.getFreeMemory()) {
-                this.logError("Memoria insuficiente para cargar: " + program.name);
+                this.showAlert("Error", "Memoria insuficiente", "No se podrá compilar " + program.name);
                 return;
             }
 
@@ -127,8 +124,9 @@ export class CH extends React.Component {
                         [this.getNextFreePosition()]: newItem
                     }
                 )
-                if (!line.startsWith("//")) {
-                    instructions.push(newItem);
+                instructions.push(newItem);
+                if (line.match(/^etiqueta\s+\w+\s+\d+$/)) {
+                    await this.createTag(line);
                 }
             }
         }
@@ -136,6 +134,13 @@ export class CH extends React.Component {
             memory: memory,
             instructions: instructions
         });
+    }
+
+    createTag = async(line) => {
+        let ins = line.split(/\s+/);
+        await this.setState(({tags}) => ({
+            tags: {...tags, [ins[1]]:ins[2]}
+        }));
     }
 
     getNextFreePosition = () => {
@@ -153,12 +158,10 @@ export class CH extends React.Component {
         const {instructions, currentInstructionIndex} = this.state;
         if (!this.hasNext()) {
             this.finish();
-            return;
+            return false;
         }
-        this.runInstruction(instructions[currentInstructionIndex]);
-        await this.setState(({currentInstructionIndex}) => ({
-            currentInstructionIndex: currentInstructionIndex + 1
-        }));
+        await this.runInstruction(instructions[currentInstructionIndex]);
+        return true;
     }
 
     hasNext = () => {
@@ -166,18 +169,8 @@ export class CH extends React.Component {
         return instructions.length > currentInstructionIndex;
     }
 
-    /* run = () => {
-        if (this.hasNext()) {
-            this.runNext(this.run);
-        }
-    } */
-
     run = async () => {
-        const {instructions, currentInstructionIndex} = this.state;
-        for (let i = currentInstructionIndex; i < instructions.length; i++) {
-            const instruction = instructions[i];
-            await this.runInstruction(instruction);
-        }
+        while (await this.runNext());
     }
 
     showMemoryError = () => {
@@ -256,28 +249,48 @@ export class CH extends React.Component {
     }
 
     runInstruction = async(instruction) => {
-        let ins = this.splitInstruction(instruction.value.trim());
-        switch (ins[0]) {
-            case "cargue":
-                await this.rCargue(ins[1]);
-                break;
-            case "nueva":
-                await this.rNueva(ins[1]);
-                break;
-            case "almacene":
-                await this.rAlmacene(ins[1]);
-                break;
-            case "reste":
-                await this.rReste(ins[1]);
-                break;
+        let alpha = 1;
+        if (!instruction.value.trim().startsWith("//")) {
+            let ins = this.splitInstruction(instruction.value.trim());
+            switch (ins[0]) {
+                case "cargue":
+                    await this.rCargue(ins[1]);
+                    break;
+                case "nueva":
+                    await this.rNueva(ins[1]);
+                    break;
+                case "almacene":
+                    await this.rAlmacene(ins[1]);
+                    break;
+                case "reste":
+                    await this.rReste(ins[1]);
+                    break;
+                case "multiplique":
+                    await this.rMultiplique(ins[1]);
+                    break;
+                case "vayasi":
+                    alpha = await this.rVayaSi(ins[1]);
+                    break;
+                case "muestre":
+                    await this.rMuestre(ins[1]);
+                    break;
 
-            case "multiplique":
-                await this.rMultiplique(ins[1]);
-                break;
-
-            default:
-                break;
+                default:
+                    break;
+            }
         }
+        if (alpha) {
+            await this.setState(({currentInstructionIndex}) => ({
+                currentInstructionIndex: currentInstructionIndex + alpha
+            }));
+        }
+    }
+
+    goToTag = async(tagName) => {
+        const {tags} = this.state;
+        await this.setState({
+            currentInstructionIndex: parseInt(tags[tagName])
+        })
     }
 
     /* Funciones CHMAQUINA */
@@ -309,16 +322,24 @@ export class CH extends React.Component {
         await this.setValue(operando, this.getAccumulator());
     }
 
-    rVaya = async(operando) => {
+    /* rVaya = async(operando) => {
 
-    }
+    } */
 
     rVayaSi = async(operando) => {
-
-    }
-
-    rEtiqueta = async(operando) => {
-
+        let operating = operando.trim().split(/\s+/);
+        let accumulator = this.getAccumulator();
+        let target;
+        if (accumulator === 0) {
+            return 2;
+        }
+        if (accumulator > 0) {
+            target = operating[0];
+        } else if (accumulator < 0) {
+            target = operating[1];
+        }
+        await this.goToTag(target);
+        return 0;
     }
 
     rLea = async(operando) => {
@@ -374,7 +395,7 @@ export class CH extends React.Component {
     }
 
     rMuestre = async(operando) => {
-
+        this.show("info", operando, this.getValue(operando));
     }
 
     rImprima = async(operando) => {
@@ -390,20 +411,13 @@ export class CH extends React.Component {
     }
     /* FIN Funciones CHMAQUINA */
 
-    logError = message => {
-        this.setState(prevState => ({
-            errors: [...prevState.errors, message]
-        }));
-    }
-
     finish = () => {
         this.showAlert("info", "Programa ha finalizado.");
     }
 
-    showAlert(type, message=null, detail=null) {
-        alert(message + detail && (": " + detail));
-        this.growl.show({severity: type, summary: message, detail: detail});
-    }
+    showAlert = () => {}
+
+    show = () => {}
 
     render() {
         return false;
