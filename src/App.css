@@ -4,3 +4,103 @@ pre {
     white-space: pre;
     margin: 1em 0;
 }
+
+.laptop-wrapper {
+    align-self: center;
+    margin: 0;
+    background: transparent;
+    width: 560px;
+    height: 340px;
+    justify-content: center;
+    align-items: center;
+}
+
+.laptop {
+    width: 50rem;
+    position: relative;
+}
+
+.laptop .content {
+    position: relative;
+    width: 20rem;
+    height: 14rem;
+    display: block;
+    color: #222;
+    margin-top: 2.5rem;
+    margin-left: 2.5rem;
+    margin-right: 2.5rem;
+}
+
+.laptop:before {
+    background: #222;
+    display: block;
+    content: "";
+    position: relative;
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 50%;
+    top: 1.55rem;
+    left: 17.5rem;
+    z-index: 1000;
+}
+.laptop:after {
+    display: block;
+    content: "";
+    position: absolute;
+    width: 95%;
+    margin-left: 2.5%;
+    height: 0.75rem;
+    border-radius: 5rem;
+}
+
+.upper {
+    width: 25rem;
+    height: 18rem;
+    background: #3d4144;
+    border: 2px solid #eaeaea;
+    border-bottom: none;
+    border-radius: 1.5rem 1.5rem 0 0;
+    margin-left: 5rem;
+    box-shadow: inset 0 0 2px 2px #222;
+    position: relative;
+}
+.upper:before {
+    width: 21rem;
+    height: 14rem;
+    background: #a1a1a1;
+    display: block;
+    content: "";
+    top: 2rem;
+    left: 2rem;
+    position: absolute;
+}
+
+.lower {
+    width: 35rem;
+    height: 1.2rem;
+    background: #eaeaea;
+    border-radius: 2px;
+    position: relative;
+}
+.lower:before {
+    display: block;
+    content: "";
+    position: absolute;
+    width: 7rem;
+    height: 0.5rem;
+    background: #a1a1a1;
+    left: 12rem;
+    top: 0;
+    border-radius: 0 0 0.25rem 0.25rem;
+}
+.lower:after {
+    display: block;
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 0.75rem;
+    background: #bababa;
+    top: 1.2rem;
+    border-bottom-right-radius: 7.5rem 2.5rem;
+    border-bottom-left-radius: 7.5rem 2.5rem;
+}

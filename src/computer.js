@@ -4,12 +4,12 @@ import {Button} from "primereact/button";
 import {Column} from "primereact/column";
 import {DataTable} from "primereact/datatable";
 import {Growl} from "primereact/growl";
-import {Message} from "primereact/message";
 import {Messages} from "primereact/messages";
 import {Panel} from "primereact/panel";
 import {ScrollPanel} from "primereact/scrollpanel";
 import {Toolbar} from "primereact/toolbar";
 import {CH} from "./ch"
+import {Screen} from "./screen";
 
 export class Computer extends CH {
 
@@ -34,7 +34,7 @@ export class Computer extends CH {
 
     render() {
         const {
-            memory, instructions, programs, showMemory, currentInstructionIndex
+            memory, instructions, programs, showMemory, currentInstructionIndex, printer
         } = this.state;
 
         return (
@@ -100,12 +100,19 @@ export class Computer extends CH {
                         </div>
                     }
                     <div className="p-col">
-                        <Panel style={{marginTop: "2em"}}>
-                            {instructions.length > 0 && instructions[currentInstructionIndex] && <pre>{instructions[currentInstructionIndex].value}</pre>}
+                        {instructions.length > 0 && instructions[currentInstructionIndex] &&
+                            <Panel header="Siguiente instrucción" style={{marginTop: "2em"}}>
+                                <pre>{instructions[currentInstructionIndex].value}</pre>
+                            </Panel>
+                        }
+                        <Screen>
+                            <ScrollPanel style={{height: "200px", marginTop: "2em"}}>
+                                <Messages ref={(el) => this.messages = el} />
+                            </ScrollPanel>
+                        </Screen>
+                        <Panel header="Salida">
+                            {printer.map((line, i) => <pre key={i}>{line}</pre>)}
                         </Panel>
-                        <ScrollPanel style={{height: "200px", marginTop: "2em"}}>
-                            <Messages ref={(el) => this.messages = el} />
-                        </ScrollPanel>
                     </div>
                     <div className="p-col-12 p-md-4 p-lg-3">
                         <Accordion activeIndex={showMemory ? 0 : null} onTabChange={(e) => this.setState({showMemory: e.index === 0})}>

@@ -22,6 +22,7 @@ export class CH extends React.Component {
         currentInstructionIndex: 0,
         tags: {},
         errors: [],
+        printer: [],
         memory: [],  // <-- Arreglo de memoria
     }
 
@@ -93,6 +94,16 @@ export class CH extends React.Component {
         });
     }
 
+    getCurrentProgram = () => {
+        const { programs, currentProgramIndex } = this.state;
+        return programs[currentProgramIndex];
+    }
+
+    getCurrentInstruction = () => {
+        const { instructions, currentInstructionIndex } = this.state;
+        return instructions[currentInstructionIndex];
+    }
+
     compile = async() => {
         /* Carga todos los programas a memoria */
         this.clearMemory();
@@ -155,12 +166,11 @@ export class CH extends React.Component {
     }
 
     runNext = async() => {
-        const {instructions, currentInstructionIndex} = this.state;
         if (!this.hasNext()) {
-            this.finish();
+            await this.finish();
             return false;
         }
-        await this.runInstruction(instructions[currentInstructionIndex]);
+        await this.runInstruction(this.getCurrentInstruction());
         return true;
     }
 
@@ -273,6 +283,12 @@ export class CH extends React.Component {
                     break;
                 case "muestre":
                     await this.rMuestre(ins[1]);
+                    break;
+                case "imprima":
+                    await this.rImprima(ins[1]);
+                    break;
+                case "retorne":
+                    await this.rRetorne(ins[1]);
                     break;
 
                 default:
@@ -399,7 +415,9 @@ export class CH extends React.Component {
     }
 
     rImprima = async(operando) => {
-
+        await this.setState(state => ({
+            printer: [...state.printer, this.getValue(operando)]
+        }));
     }
 
     rXXXX = async(operando) => {
@@ -407,12 +425,16 @@ export class CH extends React.Component {
     }
 
     rRetorne = async(operando) => {
-
+        await this.finish(parseInt(operando) ? "error": "info", true);
     }
     /* FIN Funciones CHMAQUINA */
 
-    finish = () => {
-        this.showAlert("info", "Programa ha finalizado.");
+    finish = (type, continues) => {
+        if (continues) {
+            this.showAlert(type, "Programa " + this.getCurrentProgram().name + " ha finalizado.");
+        } else {
+            this.showAlert("info", "Eso es todo.");
+        }
     }
 
     showAlert = () => {}
