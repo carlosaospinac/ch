@@ -14,6 +14,8 @@ export class CH extends React.Component {
     static defaultKernelLength = 10 * 4 + 9;
 
     state = {
+        running: false,
+        speed: 100,
         memoryLength: CH.defaultMemoryLength,
         kernelLength: CH.defaultKernelLength,
         programs: [],
@@ -67,7 +69,7 @@ export class CH extends React.Component {
         });
     }
 
-    clearMemory = async() => {
+    clearMemory = async(all) => {
         await this.setState(({ memory }) => {
             let start = memory.findIndex(el => el.type === "code");
             memory[0].value = 0;  // Restart accumulator
@@ -77,7 +79,10 @@ export class CH extends React.Component {
                     value: null
                 }))),
                 instructions: [],
-                currentInstructionIndex: 0
+                tags: {},
+                currentInstructionIndex: 0,
+                currentProgramIndex: 0,
+                ...(all ? {programs: []} : {})
             }
         });
     }
@@ -106,7 +111,7 @@ export class CH extends React.Component {
 
     compile = async() => {
         /* Carga todos los programas a memoria */
-        this.clearMemory();
+        await this.clearMemory();
 
         const { programs } = this.state;
         let { memory } = this.state;
@@ -167,11 +172,9 @@ export class CH extends React.Component {
 
     runNext = async() => {
         if (!this.hasNext()) {
-            await this.finish();
-            return false;
+            this.finish();
         }
         await this.runInstruction(this.getCurrentInstruction());
-        return true;
     }
 
     hasNext = () => {
@@ -179,8 +182,11 @@ export class CH extends React.Component {
         return instructions.length > currentInstructionIndex;
     }
 
-    run = async () => {
-        while (await this.runNext());
+    run = async() => {
+        while (this.hasNext()){
+            await this.runInstruction(this.getCurrentInstruction());
+            await this.sleep(1000 / this.state.speed);
+        }
     }
 
     showMemoryError = () => {
@@ -243,10 +249,10 @@ export class CH extends React.Component {
 
     getParsedValue = (value, type) => {
         switch (type) {
-            case "C": return String(value);
-            case "I": return parseInt(value);
-            case "R": return parseFloat(value);
-            case "L": return value !== "0";
+            case "C": return String(value) || "";
+            case "I": return parseInt(value) || 0;
+            case "R": return parseFloat(value) || 0;
+            case "L": return value && value !== "0" ? 1 : 0;
             default: return value;
         }
     }
@@ -259,46 +265,48 @@ export class CH extends React.Component {
     }
 
     runInstruction = async(instruction) => {
+        this.setState({running: true});
         let alpha = 1;
-        if (!instruction.value.trim().startsWith("//")) {
-            let ins = this.splitInstruction(instruction.value.trim());
-            switch (ins[0]) {
-                case "cargue":
-                    await this.rCargue(ins[1]);
-                    break;
-                case "nueva":
-                    await this.rNueva(ins[1]);
-                    break;
-                case "almacene":
-                    await this.rAlmacene(ins[1]);
-                    break;
-                case "reste":
-                    await this.rReste(ins[1]);
-                    break;
-                case "multiplique":
-                    await this.rMultiplique(ins[1]);
-                    break;
-                case "vayasi":
-                    alpha = await this.rVayaSi(ins[1]);
-                    break;
-                case "muestre":
-                    await this.rMuestre(ins[1]);
-                    break;
-                case "imprima":
-                    await this.rImprima(ins[1]);
-                    break;
-                case "retorne":
-                    await this.rRetorne(ins[1]);
-                    break;
+        let ins = this.splitInstruction(instruction.value.trim());
+        switch (ins[0]) {
+            case "cargue":
+                await this.rCargue(ins[1]);
+                break;
+            case "nueva":
+                await this.rNueva(ins[1]);
+                break;
+            case "almacene":
+                await this.rAlmacene(ins[1]);
+                break;
+            case "reste":
+                await this.rReste(ins[1]);
+                break;
+            case "multiplique":
+                await this.rMultiplique(ins[1]);
+                break;
+            case "vayasi":
+                alpha = await this.rVayaSi(ins[1]);
+                break;
+            case "muestre":
+                await this.rMuestre(ins[1]);
+                break;
+            case "imprima":
+                await this.rImprima(ins[1]);
+                break;
+            case "retorne":
+                await this.rRetorne(ins[1]);
+                break;
 
-                default:
-                    break;
-            }
+            default:
+                break;
         }
         if (alpha) {
             await this.setState(({currentInstructionIndex}) => ({
-                currentInstructionIndex: currentInstructionIndex + alpha
+                currentInstructionIndex: currentInstructionIndex + alpha,
+                running: false
             }));
+        } else {
+            this.setState({running: false});
         }
     }
 
@@ -316,11 +324,11 @@ export class CH extends React.Component {
             return;
         }
 
-        let regex = /^((?=[^\d])\w+) +([CIRL]) +(.+)$/;
+        let regex = /^((?=[^\d])\w+) +([CIRL])( +(.+))?$/;
         let match = operando.match(regex);
         let name = match[1];
         let type = match[2];
-        let value = match[3];
+        let value = match[4];
         return await this.saveToMemory({
             type: "var",
             varType: type,
@@ -429,17 +437,75 @@ export class CH extends React.Component {
     }
     /* FIN Funciones CHMAQUINA */
 
-    finish = (type, continues) => {
+    finish = async(type, continues) => {
+        let newState = {
+            tags: {},
+            instructions: []
+        }
         if (continues) {
+            newState.currentProgramIndex++;
+            newState.currentInstructionIndex = 0;
             this.showAlert(type, "Programa " + this.getCurrentProgram().name + " ha finalizado.");
         } else {
             this.showAlert("info", "Eso es todo.");
         }
+        await this.setState(newState);
     }
 
-    showAlert = () => {}
+    showAlert = (type=null, message=null, detail=null) => {}
 
-    show = () => {}
+    show = (type=null, message=null, detail=null) => {}
+
+    sleep = ms => {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    readFile = (file) => {
+        return new Promise(resolve => {
+            let reader = new FileReader();
+            reader.onload = e => {
+                let content = e.target.result;
+                resolve(content);
+            };
+            reader.readAsText(file);
+        });
+    }
+
+    loadPrograms = async() => {
+        let files = Array.from(await this.openFiles());
+        let newPrograms = [];
+        let index = 0;
+        for (const file of files) {
+            const content = await this.readFile(file);
+            newPrograms.push({
+                index: index++,
+                name: file.name,
+                text: content.trim()
+            });
+        }
+        await this.setState({
+            programs: newPrograms
+        });
+        if (newPrograms.length) {
+            this.showAlert("success", "Listo para compilar", newPrograms.length + " programa" + (newPrograms.length > 1 ? "s" : ""))
+        }
+    }
+
+    openFiles = () => {
+        return new Promise(resolve => {
+            let input = document.createElement("input");
+            Object.assign(input, {
+                type: "file",
+                multiple: true,
+                accept: ".ch",
+                onchange: e => {
+                    let files = e.target.files;
+                    resolve(files);
+                }
+            });
+            input.click();
+        });
+    }
 
     render() {
         return false;

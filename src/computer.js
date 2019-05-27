@@ -7,17 +7,13 @@ import {Growl} from "primereact/growl";
 import {Messages} from "primereact/messages";
 import {Panel} from "primereact/panel";
 import {ScrollPanel} from "primereact/scrollpanel";
+import {Slider} from 'primereact/slider';
 import {Toolbar} from "primereact/toolbar";
+
 import {CH} from "./ch"
 import {Screen} from "./screen";
 
 export class Computer extends CH {
-
-    componentWillMount = () => {
-        this.setState({
-            showMemory: false
-        });
-    }
 
     showAlert = (type=null, message=null, detail=null) => {
         this.growl.show({severity: type, summary: message, detail: detail});
@@ -34,34 +30,35 @@ export class Computer extends CH {
 
     render() {
         const {
-            memory, instructions, programs, showMemory, currentInstructionIndex, printer
+            memory, instructions, programs, printer, speed
         } = this.state;
+        const variables = memory.filter(x => x.type === "var");
 
         return (
             <div>
-                <Toolbar>
-                    <div className="p-toolbar-group-left">
-                        <Button label="New" icon="fa fa-plus" style={{marginRight:".25em"}}
-                            onClick={() => this.clearMemory()}/>
-                        <Button label="Upload" icon="fa fa-upload" className="p-button-success" />
-                        <i className="fa fa-bars p-toolbar-separator" style={{marginRight:".25em"}} />
-                        <Button label="Compilar" icon="fa fa-check" className="p-button-warning" style={{marginRight:".25em"}}
-                            onClick={() => this.compile()}/>
-                    </div>
-                    <div className="p-toolbar-group-right">
-                        <Button icon="fa fa-step-forward" style={{marginRight:".25em"}}
-                            onClick={() => this.runNext()}/>
-                        <Button icon="fa fa-play" className="p-button-success" style={{marginRight:".25em"}}
-                            onClick={() => this.run()}/>
-                    </div>
-                </Toolbar>
                 <div className="p-grid">
-                    {instructions.length > 0 &&
-                        <div className="p-col-12 p-md-5 p-lg-3">
+                    {memory.length > 0 &&
+                        <div className="p-col-12 p-md-4">
+                            <Toolbar>
+                                <div className="p-md-12 p-lg-6 p-toolbar-group-left">
+                                    <Button label="Nuevo" icon="fa fa-plus" style={{marginRight:".25em"}}
+                                        onClick={() => this.clearMemory(true)}/>
+                                    <Button label="Cargar" icon="fa fa-upload" className="p-button-success"
+                                        onClick={this.loadPrograms}/>
+                                </div>
+                                <div className="p-md-12 p-lg-6 p-toolbar-group-right">
+                                    <Button label={"Compilar"} icon="fa fa-check" className="p-button-warning" style={{marginRight:".25em"}}
+                                        onClick={this.compile}/>
+                                    <Button icon="fa fa-step-forward" style={{marginRight:".25em"}}
+                                        onClick={this.runNext}/>
+                                    <Button icon="fa fa-play" className="p-button-success" style={{marginRight:".25em"}}
+                                        onClick={this.run}/>
+                                </div>
+                            </Toolbar>
                             <Panel header="Acumulador" style={{marginTop:"2em"}}>
-                                {memory[0].value}
+                                <h3><pre>{memory[0].value}</pre></h3>
                             </Panel>
-                            <Accordion>
+                            <Accordion multiple={true} activeIndex={[0, 1]}>
                                 <AccordionTab header="Programas">
                                     <DataTable scrollable={true} scrollHeight="200px"
                                             value={programs.map((item, i) => {
@@ -74,36 +71,58 @@ export class Computer extends CH {
                                         <Column field="name" header="Nombre" />
                                     </DataTable>
                                 </AccordionTab>
+                                <AccordionTab header="Instrucciones">
+                                    <DataTable scrollable={true} scrollHeight="200px"
+                                        value={instructions.map((item, i) => {
+                                        return {
+                                            index: i,
+                                            value: item.value
+                                        }
+                                    })}>
+                                        <Column field="index" header="#" />
+                                        <Column field="value" header="Código" />
+                                    </DataTable>
+                                </AccordionTab>
+                                <AccordionTab header="Variables">
+                                    <DataTable scrollable={true} scrollHeight="200px"
+                                            value={variables.map((variable, i) => {
+                                        return {
+                                            programName: programs[variable.programIndex].name,
+                                            name: variable.name,
+                                            value: JSON.stringify(variable.value),
+                                            type: variable.varType
+                                        }
+                                    })}>
+                                        <Column field="programName" header="Programa" />
+                                        <Column field="name" header="Nombre" />
+                                        <Column field="value" header="Valor" />
+                                        <Column field="type" header="Tipo" />
+                                    </DataTable>
+                                </AccordionTab>
+                                <AccordionTab header="Memoria">
+                                    <DataTable scrollable={true} scrollHeight="200px"
+                                            value={memory.map((item, i) => {
+                                        return {
+                                            index: i,
+                                            value: item.value === null ? "--" : JSON.stringify(item.value)
+                                        }
+                                    })}>
+                                        <Column field="index" header="Posición" />
+                                        <Column field="value" header="Valor" />
+                                    </DataTable>
+                                </AccordionTab>
                             </Accordion>
-                            <DataTable scrollable={true} scrollHeight="200px"
-                                value={instructions.map((item, i) => {
-                                return {
-                                    index: i,
-                                    value: item.value
-                                }
-                            })} header="Instrucciones">
-                                <Column field="index" header="#" />
-                                <Column field="value" header="Código" />
-                            </DataTable>
-                            <DataTable scrollable={true} scrollHeight="200px"
-                                    value={memory.filter(x => x.type === "var").map((variable, i) => {
-                                return {
-                                    programName: programs[variable.programIndex].name,
-                                    name: variable.name,
-                                    value: JSON.stringify(variable.value)
-                                }
-                            })} header="Variables">
-                                <Column field="programName" header="Programa" />
-                                <Column field="name" header="Nombre" />
-                                <Column field="value" header="Valor" />
-                            </DataTable>
                         </div>
                     }
-                    <div className="p-col">
-                        {instructions.length > 0 && instructions[currentInstructionIndex] &&
-                            <Panel header="Siguiente instrucción" style={{marginTop: "2em"}}>
-                                <pre>{instructions[currentInstructionIndex].value}</pre>
-                            </Panel>
+                    <div className="p-col-12 p-md-8">
+                        {instructions.length > 0 && this.getCurrentInstruction() &&
+                            <div>
+                                <h3>Velocidad: {speed}</h3>
+                                <Slider value={speed} onChange={(e) => this.setState({speed: e.value})} min={10} max={100} />
+                                <Panel header="Siguiente instrucción" style={{marginTop: "2em"}}>
+                                    <pre>{this.getCurrentInstruction().value}</pre>
+                                </Panel>
+                            </div>
                         }
                         <Screen>
                             <ScrollPanel style={{height: "200px", marginTop: "2em"}}>
@@ -113,22 +132,6 @@ export class Computer extends CH {
                         <Panel header="Salida">
                             {printer.map((line, i) => <pre key={i}>{line}</pre>)}
                         </Panel>
-                    </div>
-                    <div className="p-col-12 p-md-4 p-lg-3">
-                        <Accordion activeIndex={showMemory ? 0 : null} onTabChange={(e) => this.setState({showMemory: e.index === 0})}>
-                            <AccordionTab header="Memoria">
-                                <DataTable scrollable={true} scrollHeight="200px"
-                                        value={memory.map((item, i) => {
-                                    return {
-                                        index: i,
-                                        value: item.value === null ? "--" : JSON.stringify(item.value)
-                                    }
-                                })}>
-                                    <Column field="index" header="Posición" />
-                                    <Column field="value" header="Valor" />
-                                </DataTable>
-                            </AccordionTab>
-                        </Accordion>
                     </div>
                 </div>
                 <Growl ref={(el) => this.growl = el} />

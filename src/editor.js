@@ -26,7 +26,6 @@ etiqueta fin 21
 muestre respuesta
 imprima respuesta
 retorne 0
-
 `.split("\n").map(line => "<p>" + line + "</p>").join("").trim();
 export class Editor extends CH {
     constructor(props) {

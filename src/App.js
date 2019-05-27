@@ -1,8 +1,8 @@
 import React from "react";
 import {TabView,TabPanel} from "primereact/tabview";
 
-import {Editor} from "./editor"
 import {Computer} from "./computer"
+import {Editor} from "./editor"
 
 // import classnames from "classnames";
 // import logo from "./logo.svg";
@@ -37,8 +37,7 @@ export default class App extends React.Component {
                         <Computer ref={this.computer} programs={programList}></Computer>
                     </TabPanel>
                     <TabPanel ref={this.editor} header="Editor">
-                        <Editor onChange={(e) => {console.log(e.textValue);}}
-                            onCompile={this.onEditorCompile}></Editor>
+                        <Editor onCompile={this.onEditorCompile}></Editor>
                     </TabPanel>
                 </TabView>
             </div>
