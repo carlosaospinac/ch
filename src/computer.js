@@ -3,6 +3,8 @@ import {Accordion,AccordionTab} from "primereact/accordion";
 import {Button} from "primereact/button";
 import {Column} from "primereact/column";
 import {DataTable} from "primereact/datatable";
+import {Dialog} from "primereact/dialog";
+import {InputText} from "primereact/inputtext";
 import {Growl} from "primereact/growl";
 import {Messages} from "primereact/messages";
 import {Panel} from "primereact/panel";
@@ -134,6 +136,18 @@ export class Computer extends CH {
                         </Panel>
                     </div>
                 </div>
+
+                <Dialog header="Entrada" visible={this.state.showInputDialog} modal={true} closable={false} closeOnEscape={false}
+                        onHide={() => this.setState({
+                            showInputDialog: false,
+                            currentInput: ""
+                        })}>
+                    <InputText id="in" keyfilter={this.state.currentInputFilter || null}
+                        placeholder={this.state.currentInputFilter || ""} value={this.state.currentInput}
+                        onKeyUp={this.handleInputSubmit}
+                        onChange={(e) => this.setState({currentInput: e.target.value})}/>
+                    <label htmlFor="in">{}</label>
+                </Dialog>
                 <Growl ref={(el) => this.growl = el} />
             </div>
         );

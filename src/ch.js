@@ -26,6 +26,9 @@ export class CH extends React.Component {
         errors: [],
         printer: [],
         memory: [],  // <-- Arreglo de memoria
+        showInputDialog: false,
+        currentInput: "",
+        currentInputType: ""
     }
 
     componentWillReceiveProps = ({programs}) => {
@@ -171,10 +174,11 @@ export class CH extends React.Component {
     }
 
     runNext = async() => {
-        if (!this.hasNext()) {
+        if (this.hasNext()) {
+            await this.runInstruction(this.getCurrentInstruction());
+        } else {
             this.finish();
         }
-        await this.runInstruction(this.getCurrentInstruction());
     }
 
     hasNext = () => {
@@ -220,12 +224,16 @@ export class CH extends React.Component {
         ];
     }
 
-    getValue = variable => {
+    getVar = variable => {
         const { memory, currentProgramIndex } = this.state;
 
         return memory.find(({programIndex, name}) => (
             programIndex === currentProgramIndex && name === variable
-        )).value;
+        ));
+    }
+
+    getValue = variable => {
+        return this.getVar(variable).value;
     }
 
     setValue = async(variable, newValue) => {
@@ -278,14 +286,30 @@ export class CH extends React.Component {
             case "almacene":
                 await this.rAlmacene(ins[1]);
                 break;
+            case "sume":
+                await this.rSume(ins[1]);
+                break;
             case "reste":
                 await this.rReste(ins[1]);
                 break;
             case "multiplique":
                 await this.rMultiplique(ins[1]);
                 break;
+            case "divida":
+                await this.rDivida(ins[1]);
+                break;
+            case "modulo":
+                await this.rModulo(ins[1]);
+                break;
+            case "potencia":
+                await this.rPotencia(ins[1]);
+                break;
+
             case "vayasi":
                 alpha = await this.rVayaSi(ins[1]);
+                break;
+            case "lea":
+                await this.rLea(ins[1]);
                 break;
             case "muestre":
                 await this.rMuestre(ins[1]);
@@ -315,6 +339,22 @@ export class CH extends React.Component {
         await this.setState({
             currentInstructionIndex: parseInt(tags[tagName])
         })
+    }
+
+    handleInputSubmit = async(e) => {
+        if (e.keyCode === 13) {
+            this.setState({
+                showInputDialog: false
+            });
+            this.onInputSubmit(e.target.value);
+        }
+    }
+
+    onInputSubmit = () => {}
+    input = () => {
+        return new Promise(resolve => {
+            this.onInputSubmit = resolve;
+        });
     }
 
     /* Funciones CHMAQUINA */
@@ -367,11 +407,33 @@ export class CH extends React.Component {
     }
 
     rLea = async(operando) => {
-
+        let variable = this.getVar(operando);
+        let inputFilter;
+        let newValue;
+        switch (variable.varType) {
+            case "I":
+                inputFilter = "int"
+                break;
+            case "R":
+                inputFilter = "num"
+                break;
+            case "L":
+                inputFilter = /^[10]$/
+                break;
+            default:
+                inputFilter = "C";
+                break;
+        }
+        await this.setState({
+            currentInputFilter: inputFilter,
+            showInputDialog: true
+        });
+        newValue = this.getParsedValue(await this.input(), variable.varType);
+        await this.setValue(operando, newValue);
     }
 
     rSume = async(operando) => {
-        await this.setAccumulator(this.getAccumulator() - this.getValue(operando));
+        await this.setAccumulator(this.getAccumulator() + this.getValue(operando));
     }
 
     rReste = async(operando) => {
@@ -383,15 +445,15 @@ export class CH extends React.Component {
     }
 
     rDivida = async(operando) => {
-
+        await this.setAccumulator(this.getAccumulator() / this.getValue(operando));
     }
 
     rPotencia = async(operando) => {
-
+        await this.setAccumulator(Math.pow(this.getAccumulator(), this.getValue(operando)));
     }
 
     rModulo = async(operando) => {
-
+        await this.setAccumulator(this.getAccumulator() % this.getValue(operando));
     }
 
     rConcatene = async(operando) => {
