@@ -60,7 +60,7 @@ export class Computer extends CH {
                             <Panel header="Acumulador" style={{marginTop:"2em"}}>
                                 <h3><pre>{memory[0].value}</pre></h3>
                             </Panel>
-                            <Accordion multiple={true} activeIndex={[0, 1]}>
+                            <Accordion multiple={false}>
                                 <AccordionTab header="Programas">
                                     <DataTable scrollable={true} scrollHeight="200px"
                                             value={programs.map((item, i) => {

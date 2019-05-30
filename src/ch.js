@@ -10,7 +10,7 @@ import React from "react";
 }
 */
 export class CH extends React.Component {
-    static defaultMemoryLength = 100;
+    static defaultMemoryLength = 200;
     static defaultKernelLength = 10 * 4 + 9;
 
     state = {
@@ -119,6 +119,7 @@ export class CH extends React.Component {
         const { programs } = this.state;
         let { memory } = this.state;
         let newItems = [], instructions = [];
+        let start = 0;
         for (let i = 0; i < programs.length; i++) {
             const program = programs[i];
             if (!this.checkSyntax(program)) {
@@ -145,21 +146,27 @@ export class CH extends React.Component {
                 )
                 instructions.push(newItem);
                 if (line.match(/^etiqueta\s+\w+\s+\d+$/)) {
-                    await this.createTag(line);
+                    let ins = line.split(/\s+/);
+                    await this.setState(({tags}) => ({
+                        tags: {...tags, [i + "_" + ins[1]]:parseInt(ins[2]) + start}
+                    }));
                 }
             }
+            await this.setState(({programs}) => {
+                programs[i].start = start;
+                programs[i].end = start + lines.length;
+                return {
+                    progams: programs
+                }
+            });
+            start = lines.length;
         }
         await this.setState({
             memory: memory,
             instructions: instructions
         });
-    }
+        console.log(this.state);
 
-    createTag = async(line) => {
-        let ins = line.split(/\s+/);
-        await this.setState(({tags}) => ({
-            tags: {...tags, [ins[1]]:ins[2]}
-        }));
     }
 
     getNextFreePosition = () => {
@@ -195,6 +202,7 @@ export class CH extends React.Component {
 
     showMemoryError = () => {
         this.showAlert("error", "Error!", "No hay memoria disponible para continuar.");
+        this.finish();
     }
 
     saveToMemory = async(item) => {
@@ -335,9 +343,9 @@ export class CH extends React.Component {
     }
 
     goToTag = async(tagName) => {
-        const {tags} = this.state;
+        const {tags, currentProgramIndex} = this.state;
         await this.setState({
-            currentInstructionIndex: parseInt(tags[tagName])
+            currentInstructionIndex: tags[currentProgramIndex + "_" + tagName]
         })
     }
 
@@ -500,15 +508,19 @@ export class CH extends React.Component {
     /* FIN Funciones CHMAQUINA */
 
     finish = async(type, continues) => {
-        let newState = {
-            tags: {},
-            instructions: []
-        }
+        const {programs, currentProgramIndex} = this.state;
+        let newState = {};
         if (continues) {
-            newState.currentProgramIndex++;
-            newState.currentInstructionIndex = 0;
+            Object.assign(newState, {
+                currentProgramIndex: currentProgramIndex + 1,
+            });
             this.showAlert(type, "Programa " + this.getCurrentProgram().name + " ha finalizado.");
         } else {
+            Object.assign(newState, {
+                currentInstructionIndex: 0,
+                instructions: [],
+                tags: {}
+            });
             this.showAlert("info", "Eso es todo.");
         }
         await this.setState(newState);
