@@ -142,11 +142,12 @@ export class Computer extends CH {
                             showInputDialog: false,
                             currentInput: ""
                         })}>
-                    <InputText id="in" keyfilter={this.state.currentInputFilter || null}
+                    <InputText id="input" keyfilter={this.state.currentInputFilter || null}
                         placeholder={this.state.currentInputFilter || ""} value={this.state.currentInput}
+                        autoFocus={true}
                         onKeyUp={this.handleInputSubmit}
                         onChange={(e) => this.setState({currentInput: e.target.value})}/>
-                    <label htmlFor="in">{}</label>
+                    <label htmlFor="input">{}</label>
                 </Dialog>
                 <Growl ref={(el) => this.growl = el} />
             </div>

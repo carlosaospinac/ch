@@ -4,29 +4,7 @@ import {Toolbar} from "primereact/toolbar";
 import {Button} from "primereact/button";
 import {CH} from "./ch"
 
-var textTest = `
-// Programa para calcular el factorial de 5
-nueva unidad I 1
-nueva m I 5
-nueva respuesta I 1
-nueva intermedia I 0
-cargue m
-almacene respuesta
-reste unidad
-// Se inicia el ciclo de cálculo del factorial
-almacene intermedia
-cargue respuesta
-multiplique intermedia
-almacene respuesta
-cargue intermedia
-reste unidad
-vayasi ciclo fin
-etiqueta ciclo 9
-etiqueta fin 21
-muestre respuesta
-imprima respuesta
-retorne 0
-`.split("\n").map(line => "<p>" + line + "</p>").join("").trim();
+
 export class Editor extends CH {
     constructor(props) {
         super(props);
@@ -37,7 +15,7 @@ export class Editor extends CH {
         this.setState({
             name: "Sin título",
             fontSize: 14,
-            text: textTest
+            text: ""
         });
     }
 
@@ -66,6 +44,7 @@ export class Editor extends CH {
                     }}
                     value={text}
                     onTextChange={this.onTextChange}
+                    formats={[]}
                     headerTemplate={(
                         <Toolbar>
                             <div className="p-toolbar-group-left">

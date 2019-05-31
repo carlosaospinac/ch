@@ -120,6 +120,7 @@ export class CH extends React.Component {
         let { memory } = this.state;
         let newItems = [], instructions = [];
         let start = 0;
+        let tagsFound = {};
         for (let i = 0; i < programs.length; i++) {
             const program = programs[i];
             if (!this.checkSyntax(program)) {
@@ -147,11 +148,12 @@ export class CH extends React.Component {
                 instructions.push(newItem);
                 if (line.match(/^etiqueta\s+\w+\s+\d+$/)) {
                     let ins = line.split(/\s+/);
-                    await this.setState(({tags}) => ({
-                        tags: {...tags, [i + "_" + ins[1]]:parseInt(ins[2]) + start}
-                    }));
+                    tagsFound[i + "_" + ins[1]] = parseInt(ins[2]) + start
                 }
             }
+            await this.setState({
+                tags: tagsFound
+            });
             await this.setState(({programs}) => {
                 programs[i].start = start;
                 programs[i].end = start + lines.length;
@@ -165,8 +167,6 @@ export class CH extends React.Component {
             memory: memory,
             instructions: instructions
         });
-        console.log(this.state);
-
     }
 
     getNextFreePosition = () => {
@@ -175,7 +175,6 @@ export class CH extends React.Component {
             if (memory[index].type === "free") {
                 return index;
             }
-
         }
         return -1;
     }
@@ -241,6 +240,14 @@ export class CH extends React.Component {
     }
 
     getValue = variable => {
+        let constNumberMatch = variable.match(/^(\d+(\.\d+)?)$/);
+        let constStringMatch = variable.match(/^"(.+)"$/);
+        if (constNumberMatch) {
+            return parseInt(variable);
+        }
+        if (constStringMatch) {
+            return constStringMatch[1];
+        }
         return this.getVar(variable).value;
     }
 
@@ -285,14 +292,17 @@ export class CH extends React.Component {
         let alpha = 1;
         let ins = this.splitInstruction(instruction.value.trim());
         switch (ins[0]) {
-            case "cargue":
-                await this.rCargue(ins[1]);
-                break;
             case "nueva":
                 await this.rNueva(ins[1]);
                 break;
+            case "cargue":
+                await this.rCargue(ins[1]);
+                break;
             case "almacene":
                 await this.rAlmacene(ins[1]);
+                break;
+            case "lea":
+                await this.rLea(ins[1]);
                 break;
             case "sume":
                 await this.rSume(ins[1]);
@@ -313,11 +323,27 @@ export class CH extends React.Component {
                 await this.rPotencia(ins[1]);
                 break;
 
+            case "concatene":
+                await this.rConcatene(ins[1]);
+                break;
+            case "elimine":
+                await this.rElimine(ins[1]);
+                break;
+            case "extraiga":
+                await this.rExtraiga(ins[1]);
+                break;
+
             case "vayasi":
                 alpha = await this.rVayaSi(ins[1]);
                 break;
-            case "lea":
-                await this.rLea(ins[1]);
+            case "Y":
+                await this.rY(ins[1]);
+                break;
+            case "O":
+                await this.rO(ins[1]);
+                break;
+            case "NO":
+                await this.rNO(ins[1]);
                 break;
             case "muestre":
                 await this.rMuestre(ins[1]);
@@ -325,6 +351,10 @@ export class CH extends React.Component {
             case "imprima":
                 await this.rImprima(ins[1]);
                 break;
+            case "maximo":
+                await this.rMaximo(ins[1]);
+                break;
+
             case "retorne":
                 await this.rRetorne(ins[1]);
                 break;
@@ -349,6 +379,16 @@ export class CH extends React.Component {
         })
     }
 
+    getContitionalMatch = (operating) => {
+        let regex = /^(.+)\b +(.+)\b +((?=[^\d])\w+)$/;
+        let match = operating.match(regex);
+        return {
+            op1: this.getValue(match[1]),
+            op2: this.getValue(match[2]),
+            variable: match[3]
+        }
+    }
+
     handleInputSubmit = async(e) => {
         if (e.keyCode === 13) {
             this.setState({
@@ -360,6 +400,7 @@ export class CH extends React.Component {
 
     onInputSubmit = () => {}
     input = () => {
+        document.getElementById("input").focus();
         return new Promise(resolve => {
             this.onInputSubmit = resolve;
         });
@@ -392,26 +433,6 @@ export class CH extends React.Component {
 
     rAlmacene = async(operando) => {
         await this.setValue(operando, this.getAccumulator());
-    }
-
-    /* rVaya = async(operando) => {
-
-    } */
-
-    rVayaSi = async(operando) => {
-        let operating = operando.trim().split(/\s+/);
-        let accumulator = this.getAccumulator();
-        let target;
-        if (accumulator === 0) {
-            return 2;
-        }
-        if (accumulator > 0) {
-            target = operating[0];
-        } else if (accumulator < 0) {
-            target = operating[1];
-        }
-        await this.goToTag(target);
-        return 0;
     }
 
     rLea = async(operando) => {
@@ -456,36 +477,59 @@ export class CH extends React.Component {
         await this.setAccumulator(this.getAccumulator() / this.getValue(operando));
     }
 
-    rPotencia = async(operando) => {
-        await this.setAccumulator(Math.pow(this.getAccumulator(), this.getValue(operando)));
-    }
-
     rModulo = async(operando) => {
         await this.setAccumulator(this.getAccumulator() % this.getValue(operando));
     }
 
-    rConcatene = async(operando) => {
+    rPotencia = async(operando) => {
+        await this.setAccumulator(Math.pow(this.getAccumulator(), this.getValue(operando)));
+    }
 
+    rConcatene = async(operando) => {
+        await this.setAccumulator(this.getAccumulator().toString() + this.getValue(operando));
     }
 
     rElimine = async(operando) => {
-
+        await this.setAccumulator(this.getAccumulator().replace(this.getValue(operando), ""));
     }
 
     rExtraiga = async(operando) => {
+        await this.setAccumulator(this.getAccumulator().slice(this.getValue(operando)));
+    }
 
+    /* rVaya = async(operando) => {
+
+    } */
+
+    rVayaSi = async(operando) => {
+        let operating = operando.trim().split(/\s+/);
+        let accumulator = this.getAccumulator();
+        let target;
+        if (accumulator === 0) {
+            return 2;
+        }
+        if (accumulator > 0) {
+            target = operating[0];
+        } else if (accumulator < 0) {
+            target = operating[1];
+        }
+        await this.goToTag(target);
+        return 0;
     }
 
     rY = async(operando) => {
-
+        let {variable, op1, op2} = this.getContitionalMatch(operando);
+        await this.setValue(variable, op1 && op2 ? 1 : 0);
     }
 
     rO = async(operando) => {
-
+        let {variable, op1, op2} = this.getContitionalMatch(operando);
+        await this.setValue(variable, op1 || op2 ? 1 : 0);
     }
 
     rNO = async(operando) => {
-
+        let operating = operando.trim().split(/\s+/);
+        await this.setValue(operating[1], this.getValue(operating[0]) ? 0 : 1);
     }
 
     rMuestre = async(operando) => {
@@ -498,8 +542,10 @@ export class CH extends React.Component {
         }));
     }
 
-    rXXXX = async(operando) => {
-
+    rMaximo = async(operando) => {
+        let operating = operando.trim().split(/\s+/);
+        let values = operating.slice(1).map(value => this.getValue(value));
+        await this.setValue(operating[0], Math.max(...values));
     }
 
     rRetorne = async(operando) => {
@@ -508,7 +554,7 @@ export class CH extends React.Component {
     /* FIN Funciones CHMAQUINA */
 
     finish = async(type, continues) => {
-        const {programs, currentProgramIndex} = this.state;
+        const {currentProgramIndex} = this.state;
         let newState = {};
         if (continues) {
             Object.assign(newState, {
