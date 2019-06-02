@@ -57,9 +57,10 @@ export class Editor extends CH {
     }
 
     downloadFile = () => {
-        let textToWrite = this.getParsedText();
+        const { name, code } = this.state;
+        let textToWrite = code;
         let textFileAsBlob = new Blob([textToWrite], {type:"text/plain"});
-        let fileNameToSaveAs = this.state.name || this.defaultName;
+        let fileNameToSaveAs = name || this.defaultName;
 
         let downloadLink = document.createElement("a");
         downloadLink.download = fileNameToSaveAs + ".ch";
