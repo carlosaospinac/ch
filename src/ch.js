@@ -82,6 +82,7 @@ export class CH extends React.Component {
                     value: null
                 }))),
                 instructions: [],
+                errors: [],
                 tags: {},
                 currentInstructionIndex: 0,
                 currentProgramIndex: 0,
@@ -123,9 +124,7 @@ export class CH extends React.Component {
         let tagsFound = {};
         for (let i = 0; i < programs.length; i++) {
             const program = programs[i];
-            if (!this.checkSyntax(program)) {
-                return;
-            }
+
             const lines = program.text.split("\n");
             if (lines.length > this.getFreeMemory()) {
                 this.showAlert("Error", "Memoria insuficiente", "No se podrá compilar " + program.name);
@@ -219,8 +218,115 @@ export class CH extends React.Component {
         }));
     }
 
-    checkSyntax = program => {
-        /* [TODO] */
+    checkSyntax = (text, programName) => {
+        const rxNueva = /^nueva +(\w+) +[CIRL]( +(?=\S).+)?/;
+        const rxOperable = /^(cargue|almacene|lea|sume|reste|multiplique|divida|modulo|potencia|muestre|imprima) +([^\d\W]\w*|".+"|\d+)$/;
+        const rxVaya = /^vaya +(\w+)$/;
+        const rxVayaSi = /^vayasi +(\w+) +(\w+)$/;
+        const rxEtiqueta = /^etiqueta +(\w+) +(\d+)$/;
+        const rxRetorne = /^retorne( *(\d+))?$/
+        const lines = text.trimRight().split("\n").map(line => line.trim());
+        let vars = new Set();
+        let tagsGoTo = new Set();
+        let tagsGoToLines = {};
+        let tags = new Set();
+        let newErrors = [];
+        let alreadyEnd = false;
+        if (!lines.length) {
+            newErrors.push({
+                message: "No hay instrucciones válidas.",
+                programName: programName
+            });
+        }
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (!line.length || line.startsWith("//")) {
+                continue;
+            }
+            let m;
+            if (m = line.match(rxNueva)) {
+                if (vars.has(m[1])) {
+                    newErrors.push({
+                        message: "Variable '" + m[1] + "' ya ha sido definida.",
+                        programName: programName,
+                        line: i + 1
+                    });
+                }
+                vars.add(m[1]);
+            } else if (m = line.match(rxOperable)) {
+                if (!vars.has(m[2])) {
+                    let constNumberMatch = m[2].match(/^(\d+(\.\d+)?)$/);
+                    let constStringMatch = m[2].match(/^"(.+)"$/);
+                    if (!(constNumberMatch || constStringMatch)) {
+                        newErrors.push({
+                            message: "Variable '" + m[2] + "' es usada antes de ser definida.",
+                            programName: programName,
+                            line: i + 1
+                        });
+                    }
+                }
+            } else if (m = line.match(rxVaya)) {
+                tagsGoTo.add(m[1]);
+                tagsGoToLines[m[1]] = i;
+            } else if (m = line.match(rxVayaSi)) {
+                tagsGoTo.add(m[1]);
+                tagsGoToLines[m[1]] = i;
+                tagsGoTo.add(m[2]);
+                tagsGoToLines[m[2]] = i;
+            } else if (m = line.match(rxEtiqueta)) {
+                tags.add(m[1]);
+                tagsGoToLines[m[1]] = i;
+            } else if (m = line.match(rxRetorne)) {
+                if (alreadyEnd) {
+                    newErrors.push({
+                        message: "El operados 'retorne' debe estar sólo una vez.",
+                        programName: programName,
+                        line: i + 1
+                    });
+                } else if (i < lines.length - 1) {
+                    newErrors.push({
+                        message: "El operador 'retorne' debe estar al final del programa.",
+                        programName: programName,
+                        line: i + 1
+                    });
+                }
+                alreadyEnd = true;
+            } else {
+                newErrors.push({
+                    message: "Error de sintaxis. Expresión desconocida.",
+                    programName: programName,
+                    line: i + 1
+                });
+            }
+        }
+        if (tagsGoTo.size) {
+            let undefinedTags = [...tagsGoTo].filter(x => !tags.has(x));
+            if (undefinedTags.length) {
+                for (let i = 0; i < undefinedTags.length; i++) {
+                    const undefinedTag = undefinedTags[i];
+                    newErrors.push({
+                        message: "Etiqueta '" + undefinedTag + "' no ha sido definida.",
+                        programName: programName,
+                        line: tagsGoToLines[undefinedTag]
+                    });
+                }
+            }
+        }
+        if (!alreadyEnd) {
+            newErrors.push({
+                message: "Se espera el operador 'retorne' al final.",
+                programName: programName,
+                line: lines.length
+            });
+        }
+        if (newErrors.length) {
+            this.setState(({errors}) => ({
+                errors: errors.concat(newErrors)
+            }));
+            this.showAlert("error", "Errores en " + programName);
+            return false;
+        }
         return true;
     }
 
@@ -243,7 +349,7 @@ export class CH extends React.Component {
         let constNumberMatch = variable.match(/^(\d+(\.\d+)?)$/);
         let constStringMatch = variable.match(/^"(.+)"$/);
         if (constNumberMatch) {
-            return parseInt(variable);
+            return parseFloat(variable);
         }
         if (constStringMatch) {
             return constStringMatch[1];
@@ -533,7 +639,7 @@ export class CH extends React.Component {
     }
 
     rMuestre = async(operando) => {
-        this.show("info", operando, this.getValue(operando));
+        this.show(null, this.getValue(operando));
     }
 
     rImprima = async(operando) => {
@@ -597,10 +703,14 @@ export class CH extends React.Component {
         let index = 0;
         for (const file of files) {
             const content = await this.readFile(file);
+            let text = content.trim();
+            if (!this.checkSyntax(text, file.name)) {
+                break;
+            }
             newPrograms.push({
                 index: index++,
                 name: file.name,
-                text: content.trim()
+                text: text
             });
         }
         await this.setState({
@@ -611,12 +721,12 @@ export class CH extends React.Component {
         }
     }
 
-    openFiles = () => {
+    openFiles = (multiple=true) => {
         return new Promise(resolve => {
             let input = document.createElement("input");
             Object.assign(input, {
                 type: "file",
-                multiple: true,
+                multiple: multiple,
                 accept: ".ch",
                 onchange: e => {
                     let files = e.target.files;

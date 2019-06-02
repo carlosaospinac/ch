@@ -23,6 +23,7 @@ export class Computer extends CH {
 
     show = (type, summary, detail) => {
         this.messages.show({
+            closable: false,
             severity: type,
             summary: summary,
             detail: detail,
@@ -31,9 +32,7 @@ export class Computer extends CH {
     }
 
     render() {
-        const {
-            memory, instructions, programs, printer, speed
-        } = this.state;
+        const { errors, memory, instructions, programs, printer, speed } = this.state;
         const variables = memory.filter(x => x.type === "var");
 
         return (
@@ -134,6 +133,9 @@ export class Computer extends CH {
                         <Panel header="Salida">
                             {printer.map((line, i) => <pre key={i}>{line}</pre>)}
                         </Panel>
+                        {errors.length > 0 && errors.map((e, i) => {
+                            return <p key={i}>{e.message} (en {e.programName}:{e.line})</p>
+                        })}
                     </div>
                 </div>
 
