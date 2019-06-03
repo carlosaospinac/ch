@@ -1,4 +1,5 @@
 import React from "react";
+import {Card} from "primereact/card";
 import {TabView,TabPanel} from "primereact/tabview";
 
 import {Computer} from "./computer"
@@ -38,6 +39,34 @@ export default class App extends React.Component {
                     </TabPanel>
                     <TabPanel ref={this.editor} header="Editor">
                         <Editor onCompile={this.onEditorCompile}></Editor>
+                    </TabPanel>
+                    <TabPanel ref={this.editor} header="Acerca de">
+                    <Card title="CH-MÁQUINA" subTitle="Sistemas Operativos" style={{width: "100%"}}
+                            className="ui-card-shadow"
+                            header={(
+                                <div class="crop">
+                                    <img alt="Header" src={require("./media/wall.jpg")}/>
+                                </div>
+                            )}>
+                        <div class="p-grid">
+                            <div className="p-col-12 p-md-8">
+                                <b>Por <a href="http://github.com/carlosaospinac" target="_blank">Carlos A. Ospina </a></b>
+                                <p>Simpulación del funcionamiento básico de un chcomputador.</p>
+                                <p>
+                                    Esta aplicación simula un procesador muy elemental y una memoria principal a través de un vector de 9999 posiciones, las cuales pueden ser variadas al momento de iniciar el programa.
+                                    El chcomputador empieza con 100 posiciones de memoria.
+                                </p>
+                                <p>
+                                    Está hecho para que pueda leer un conjunto de programas en un seudo-lenguaje denominado CHMAQUINA (extensión <span className="plain">.ch</span>) y los cargarlos en las posiciones disponibles de la memoria.
+                                </p>
+                            </div>
+                            <div className="p-col-12 p-md-4">
+                                <div class="unal">
+                                    <img alt="Unal" src={require("./media/unal.png")}/>
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
                     </TabPanel>
                 </TabView>
             </div>
