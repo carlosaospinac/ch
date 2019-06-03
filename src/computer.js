@@ -32,7 +32,7 @@ export class Computer extends CH {
     }
 
     render() {
-        const { errors, memory, instructions, programs, printer, speed } = this.state;
+        const { errors, memory, memoryLength, instructions, programs, printer, speed } = this.state;
         const variables = memory.filter(x => x.type === "var");
 
         return (
@@ -88,19 +88,19 @@ export class Computer extends CH {
                                     <DataTable scrollable={true} scrollHeight="200px"
                                             value={variables.map((variable, i) => {
                                         return {
-                                            programName: programs[variable.programIndex].name,
+                                            programIndex: variable.programIndex,
                                             name: variable.name,
                                             value: JSON.stringify(variable.value),
                                             type: variable.varType
                                         }
                                     })}>
-                                        <Column field="programName" header="Programa" />
+                                        <Column field="programIndex" header="Programa" />
                                         <Column field="name" header="Nombre" />
                                         <Column field="value" header="Valor" />
                                         <Column field="type" header="Tipo" />
                                     </DataTable>
                                 </AccordionTab>
-                                <AccordionTab header="Memoria">
+                                <AccordionTab header={"Memoria (" + memoryLength + ")"}>
                                     <DataTable scrollable={true} scrollHeight="200px"
                                             value={memory.map((item, i) => {
                                         return {

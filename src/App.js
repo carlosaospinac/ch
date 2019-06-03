@@ -35,38 +35,38 @@ export default class App extends React.Component {
             <div>
                 <TabView renderActiveOnly={false} activeIndex={activeTabIndex} onTabChange={e => this.setState({activeTabIndex: e.index})}>
                     <TabPanel header="CH-Computador">
-                        <Computer ref={this.computer} programs={programList}></Computer>
+                        <Computer ref={this.computer} programs={programList} onLoadPrograms={e => this.setState({programList: e})}></Computer>
                     </TabPanel>
                     <TabPanel ref={this.editor} header="Editor">
                         <Editor onCompile={this.onEditorCompile}></Editor>
                     </TabPanel>
                     <TabPanel ref={this.editor} header="Acerca de">
-                    <Card title="CH-MÁQUINA" subTitle="Sistemas Operativos" style={{width: "100%"}}
-                            className="ui-card-shadow"
-                            header={(
-                                <div class="crop">
-                                    <img alt="Header" src={require("./media/wall.jpg")}/>
+                        <Card title="CH-MÁQUINA" subTitle="Sistemas Operativos" style={{width: "100%"}}
+                                className="ui-card-shadow"
+                                header={(
+                                    <div className="crop">
+                                        <img alt="Header" src={require("./media/wall.jpg")}/>
+                                    </div>
+                                )}>
+                            <div className="p-grid">
+                                <div className="p-col-12 p-md-8">
+                                    <b>Por <a href="http://github.com/carlosaospinac" target="_blank">Carlos A. Ospina </a></b>
+                                    <p>Simpulación del funcionamiento básico de un chcomputador.</p>
+                                    <p>
+                                        Esta aplicación simula un procesador muy elemental y una memoria principal a través de un vector de 9999 posiciones, las cuales pueden ser variadas al momento de iniciar el programa.
+                                        El chcomputador empieza con 100 posiciones de memoria.
+                                    </p>
+                                    <p>
+                                        Está hecho para que pueda leer un conjunto de programas en un seudo-lenguaje denominado CHMAQUINA (extensión <span className="plain">.ch</span>) y los cargarlos en las posiciones disponibles de la memoria.
+                                    </p>
                                 </div>
-                            )}>
-                        <div class="p-grid">
-                            <div className="p-col-12 p-md-8">
-                                <b>Por <a href="http://github.com/carlosaospinac" target="_blank">Carlos A. Ospina </a></b>
-                                <p>Simpulación del funcionamiento básico de un chcomputador.</p>
-                                <p>
-                                    Esta aplicación simula un procesador muy elemental y una memoria principal a través de un vector de 9999 posiciones, las cuales pueden ser variadas al momento de iniciar el programa.
-                                    El chcomputador empieza con 100 posiciones de memoria.
-                                </p>
-                                <p>
-                                    Está hecho para que pueda leer un conjunto de programas en un seudo-lenguaje denominado CHMAQUINA (extensión <span className="plain">.ch</span>) y los cargarlos en las posiciones disponibles de la memoria.
-                                </p>
-                            </div>
-                            <div className="p-col-12 p-md-4">
-                                <div class="unal">
-                                    <img alt="Unal" src={require("./media/unal.png")}/>
+                                <div className="p-col-12 p-md-4">
+                                    <div className="unal">
+                                        <img alt="Unal" src={require("./media/unal.png")}/>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </Card>
+                        </Card>
                     </TabPanel>
                 </TabView>
             </div>

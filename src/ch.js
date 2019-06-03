@@ -10,7 +10,7 @@ import React from "react";
 }
 */
 export class CH extends React.Component {
-    static defaultMemoryLength = 200;
+    static defaultMemoryLength = 100;
     static defaultKernelLength = 10 * 4 + 9;
 
     state = {
@@ -126,7 +126,7 @@ export class CH extends React.Component {
             const program = programs[i];
 
             const lines = program.text.split("\n");
-            if (lines.length > this.getFreeMemory()) {
+            if (lines.length > (await this.getFreeMemory())) {
                 this.showAlert("Error", "Memoria insuficiente", "No se podrá compilar " + program.name);
                 return;
             }
@@ -368,7 +368,25 @@ export class CH extends React.Component {
         });
     }
 
-    getFreeMemory = () => {
+    getFreeMemory = async() => {
+        if (this.getMemoryByType("free").length === 0) {
+            let {memoryLength, memory} = this.state;
+            if (memoryLength === 9999) {
+                this.showMemoryError();
+            } else {
+                memoryLength = Math.min(9999, memoryLength + 100);
+                while (memory.length < memoryLength) {
+                    memory.push({
+                        type: "free",
+                        value: null
+                    });
+                }
+                await this.setState({
+                    memoryLength: memoryLength,
+                    memory: memory
+                })
+            }
+        }
         return this.getMemoryByType("free").length;
     }
 
@@ -386,8 +404,8 @@ export class CH extends React.Component {
         }
     }
 
-    checkMemoryAvaliable = () => {
-        if (this.getFreeMemory() === 0) {
+    checkMemoryAvaliable = async() => {
+        if ((await this.getFreeMemory()) === 0) {
             this.showMemoryError();
         }
         return true;
@@ -519,7 +537,7 @@ export class CH extends React.Component {
     /* Funciones CHMAQUINA */
 
     rNueva = async(operando) => {
-        if (!this.checkMemoryAvaliable()) {
+        if (!(await this.checkMemoryAvaliable())) {
             return;
         }
 
@@ -717,6 +735,7 @@ export class CH extends React.Component {
                 text: text
             });
         }
+        this.props.onLoadPrograms(newPrograms);
         await this.setState({
             programs: newPrograms
         });
