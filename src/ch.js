@@ -439,6 +439,10 @@ export class CH extends React.Component {
                 await this.rExtraiga(ins[1]);
                 break;
 
+            case "vaya":
+                await this.rVaya(ins[1]);
+                alpha = 0;
+                break;
             case "vayasi":
                 alpha = await this.rVayaSi(ins[1]);
                 break;
@@ -603,9 +607,9 @@ export class CH extends React.Component {
         await this.setAccumulator(this.getAccumulator().slice(this.getValue(operando)));
     }
 
-    /* rVaya = async(operando) => {
-
-    } */
+    rVaya = async(operando) => {
+        await this.goToTag(operando);
+    }
 
     rVayaSi = async(operando) => {
         let operating = operando.trim().split(/\s+/);
