@@ -9,7 +9,7 @@ import {Growl} from "primereact/growl";
 import {Messages} from "primereact/messages";
 import {Panel} from "primereact/panel";
 import {ScrollPanel} from "primereact/scrollpanel";
-import {Slider} from 'primereact/slider';
+import {Slider} from "primereact/slider";
 import {Toolbar} from "primereact/toolbar";
 
 import {CH} from "./ch"
@@ -32,7 +32,8 @@ export class Computer extends CH {
     }
 
     render() {
-        const { errors, memory, memoryLength, instructions, programs, printer, speed } = this.state;
+        const { errors, memory, memoryLength, instructions, programs, printer, speed,
+            showInputDialog, inputMessage } = this.state;
         const variables = memory.filter(x => x.type === "var");
 
         return (
@@ -42,22 +43,26 @@ export class Computer extends CH {
                         <div className="p-col-12 p-md-4">
                             <Toolbar>
                                 <div className="p-md-12 p-lg-6 p-toolbar-group-left">
-                                    <Button label="Nuevo" icon="fa fa-plus" style={{marginRight:".25em"}}
+                                    <Button tooltip="Nuevo" icon="fa fa-plus" style={{marginRight:".25em"}} tooltipOptions={{position: "top"}}
                                         onClick={() => this.clearMemory(true)}/>
-                                    <Button label="Cargar" icon="fa fa-upload" className="p-button-success"
+                                    <Button tooltip="Cargar" icon="fa fa-upload" className="p-button-success" tooltipOptions={{position: "top"}}
                                         onClick={this.loadPrograms}/>
                                 </div>
                                 <div className="p-md-12 p-lg-6 p-toolbar-group-right">
-                                    <Button label={"Compilar"} icon="fa fa-check" className="p-button-warning" style={{marginRight:".25em"}}
+                                    <Button tooltip="Compilar" icon="fa fa-check" className="p-button-warning" style={{marginRight:".25em"}} tooltipOptions={{position: "top"}}
                                         onClick={this.compile}/>
-                                    <Button icon="fa fa-step-forward" style={{marginRight:".25em"}}
+                                    <Button tooltip="Parar" icon="fa fa-stop" className="p-button-danger" style={{marginRight:".25em"}} tooltipOptions={{position: "top"}}
+                                        onClick={() => this.setState({run: false})}/>
+                                    <Button tooltip="Siguiente paso" icon="fa fa-step-forward" style={{marginRight:".25em"}} tooltipOptions={{position: "top"}}
                                         onClick={this.runNext}/>
-                                    <Button icon="fa fa-play" className="p-button-success" style={{marginRight:".25em"}}
+                                    <Button tooltip="Ejecutar todo" icon="fa fa-play" className="p-button-success" style={{marginRight:".25em"}} tooltipOptions={{position: "top"}}
                                         onClick={this.run}/>
                                 </div>
                             </Toolbar>
                             <Panel header="Acumulador" style={{marginTop:"2em"}}>
-                                <h3><pre>{memory[0].value}</pre></h3>
+                                <ScrollPanel style={{width: "100%", height: "80px"}}>
+                                    <h3><pre>{memory[0].value}</pre></h3>
+                                </ScrollPanel>
                             </Panel>
                             <Accordion multiple={false}>
                                 <AccordionTab header="Programas">
@@ -139,11 +144,12 @@ export class Computer extends CH {
                     </div>
                 </div>
 
-                <Dialog header="Entrada" visible={this.state.showInputDialog} modal={true} closable={false} closeOnEscape={false}
+                <Dialog header="Entrada" visible={showInputDialog} modal={true} closable={false} closeOnEscape={false}
                         onHide={() => this.setState({
                             showInputDialog: false,
                             currentInput: ""
                         })}>
+                    <p>{inputMessage || ""}</p>
                     <InputText id="input" keyfilter={this.state.currentInputFilter || null}
                         placeholder={this.state.currentInputFilter || ""} value={this.state.currentInput}
                         autoFocus={true}

@@ -15,6 +15,7 @@ export class CH extends React.Component {
 
     state = {
         running: false,
+        run: false,
         speed: 100,
         memoryLength: CH.defaultMemoryLength,
         kernelLength: CH.defaultKernelLength,
@@ -27,6 +28,7 @@ export class CH extends React.Component {
         printer: [],
         memory: [],  // <-- Arreglo de memoria
         showInputDialog: false,
+        inputMessage: "",
         currentInput: "",
         currentInputType: ""
     }
@@ -192,7 +194,8 @@ export class CH extends React.Component {
     }
 
     run = async() => {
-        while (this.hasNext()){
+        await this.setState({run: true});
+        while (this.state.run && this.hasNext()){
             await this.runInstruction(this.getCurrentInstruction());
             await this.sleep(1000 / this.state.speed);
         }
@@ -220,13 +223,14 @@ export class CH extends React.Component {
 
     checkSyntax = (text, programName) => {
         const rxNueva = /^nueva +(\w+) +[CIRL]( +(?=\S).+)?/;
-        const rxOperable = /^(cargue|almacene|lea|sume|reste|multiplique|divida|modulo|potencia|muestre|imprima) +([^\d\W]\w*|".+"|\d+)$/;
+        const rxOperable = /^(cargue|almacene|lea|sume|reste|multiplique|divida|modulo|potencia|concatene|elimine|extraiga|muestre|imprima) +([^\d\W]\w*|".+"|\d+)$/;
+        const rxMaximo = /^maximo +(\w+) +((([^\d\W]\w*|".+"|\d+) *)+)$/;
         const rxVaya = /^vaya +(\w+)$/;
         const rxVayaSi = /^vayasi +(\w+) +(\w+)$/;
         const rxEtiqueta = /^etiqueta +(\w+) +(\d+)$/;
         const rxRetorne = /^retorne( *(\d+))?$/
         const lines = text.trimRight().split("\n").map(line => line.trim());
-        let vars = new Set();
+        let vars = new Set(["acumulador"]);
         let tagsGoTo = new Set();
         let tagsGoToLines = {};
         let tags = new Set();
@@ -246,6 +250,13 @@ export class CH extends React.Component {
             }
             let m;
             if (m = line.match(rxNueva)) {
+                if (m[1] === "acumulador") {
+                    newErrors.push({
+                        message: "'acumulador' es una variable reservada del sistema.",
+                        programName: programName,
+                        line: i + 1
+                    });
+                }
                 if (vars.has(m[1])) {
                     newErrors.push({
                         message: "Variable '" + m[1] + "' ya ha sido definida.",
@@ -264,6 +275,21 @@ export class CH extends React.Component {
                             programName: programName,
                             line: i + 1
                         });
+                    }
+                }
+            } else if (m = line.match(rxMaximo)) {
+                let operatings = [m[1], ...m[1].trim().split(/\s+/)];
+                for (const x of operatings) {
+                    if (!vars.has(x)) {
+                        let constNumberMatch = x.match(/^(\d+(\.\d+)?)$/);
+                        let constStringMatch = x.match(/^"(.+)"$/);
+                        if (!(constNumberMatch || constStringMatch)) {
+                            newErrors.push({
+                                message: "Variable '" + x + "' es usada antes de ser definida.",
+                                programName: programName,
+                                line: i + 1
+                            });
+                        }
                     }
                 }
             } else if (m = line.match(rxVaya)) {
@@ -332,8 +358,8 @@ export class CH extends React.Component {
 
     splitInstruction = (instruction) => {
         return [
-            instruction.substr(0,instruction.indexOf(" ")),
-            instruction.substr(instruction.indexOf(" ") + 1)
+            instruction.substr(0,instruction.indexOf(" ")).trim(),
+            instruction.substr(instruction.indexOf(" ") + 1).trim()
         ];
     }
 
@@ -346,6 +372,9 @@ export class CH extends React.Component {
     }
 
     getValue = variable => {
+        if (variable === "acumulador") {
+            return this.getAccumulator();
+        }
         let constNumberMatch = variable.match(/^(\d+(\.\d+)?)$/);
         let constStringMatch = variable.match(/^"(.+)"$/);
         if (constNumberMatch) {
@@ -520,7 +549,8 @@ export class CH extends React.Component {
     handleInputSubmit = async(e) => {
         if (e.keyCode === 13) {
             this.setState({
-                showInputDialog: false
+                showInputDialog: false,
+                inputMessage: ""
             });
             this.onInputSubmit(e.target.value);
         }
@@ -578,12 +608,12 @@ export class CH extends React.Component {
                 inputFilter = /^[10]$/
                 break;
             default:
-                inputFilter = "C";
                 break;
         }
         await this.setState({
             currentInputFilter: inputFilter,
-            showInputDialog: true
+            showInputDialog: true,
+            inputMessage: "Ingrese el valor para '" + operando + "'"
         });
         newValue = this.getParsedValue(await this.input(), variable.varType);
         await this.setValue(operando, newValue);
@@ -602,7 +632,23 @@ export class CH extends React.Component {
     }
 
     rDivida = async(operando) => {
-        await this.setAccumulator(this.getAccumulator() / this.getValue(operando));
+        let a = this.getAccumulator();
+        let b = this.getValue(operando);
+        if (b === 0) {
+            await this.setState({
+                currentInputFilter: "int",
+                showInputDialog: true,
+                inputMessage: "No es posible hacer una división entre cero. ¿Qué valor desea asumir para " + a + "/" + b + "?"
+            });
+            let response = await this.input();
+            if (!response) {
+                this.finish("error");
+            } else {
+                await this.setAccumulator(a / parseFloat(response));
+            }
+        } else {
+            await this.setAccumulator(a / b);
+        }
     }
 
     rModulo = async(operando) => {
@@ -673,6 +719,7 @@ export class CH extends React.Component {
     rMaximo = async(operando) => {
         let operating = operando.trim().split(/\s+/);
         let values = operating.slice(1).map(value => this.getValue(value));
+
         await this.setValue(operating[0], Math.max(...values));
     }
 
@@ -681,7 +728,7 @@ export class CH extends React.Component {
     }
     /* FIN Funciones CHMAQUINA */
 
-    finish = async(type, continues) => {
+    finish = async(type="info", continues) => {
         const {currentProgramIndex} = this.state;
         let newState = {};
         if (continues) {
@@ -695,7 +742,7 @@ export class CH extends React.Component {
                 instructions: [],
                 tags: {}
             });
-            this.showAlert("info", "Eso es todo.");
+            this.showAlert(type, "Eso es todo.");
         }
         await this.setState(newState);
     }
