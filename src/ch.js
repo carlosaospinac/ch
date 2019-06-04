@@ -14,6 +14,7 @@ export class CH extends React.Component {
     static defaultKernelLength = 10 * 4 + 9;
 
     state = {
+        mode: "kernel",
         running: false,
         run: false,
         speed: 100,
@@ -116,6 +117,7 @@ export class CH extends React.Component {
     }
 
     compile = async() => {
+        this.setState({mode: "user"});
         /* Carga todos los programas a memoria */
         await this.clearMemory();
 
@@ -222,12 +224,12 @@ export class CH extends React.Component {
     }
 
     checkSyntax = (text, programName) => {
-        const rxNueva = /^nueva +(\w+) +[CIRL]( +(?=\S).+)?/;
+        const rxNueva = /^nueva +(\w+) +[CIRL]( +(?=\S).{1,255})?/;
         const rxOperable = /^(cargue|almacene|lea|sume|reste|multiplique|divida|modulo|potencia|concatene|elimine|extraiga|muestre|imprima) +([^\d\W]\w*|".+"|\d+)$/;
         const rxMaximo = /^maximo +(\w+) +((([^\d\W]\w*|".+"|\d+) *)+)$/;
         const rxVaya = /^vaya +(\w+)$/;
         const rxVayaSi = /^vayasi +(\w+) +(\w+)$/;
-        const rxEtiqueta = /^etiqueta +(\w+) +(\d+)$/;
+        const rxEtiqueta = /^etiqueta +(\w{1,255}) +(\d+)$/;
         const rxRetorne = /^retorne( *(\d+))?$/
         const lines = text.trimRight().split("\n").map(line => line.trim());
         let vars = new Set(["acumulador"]);
@@ -730,7 +732,9 @@ export class CH extends React.Component {
 
     finish = async(type="info", continues) => {
         const {currentProgramIndex} = this.state;
-        let newState = {};
+        let newState = {
+            run: false
+        };
         if (continues) {
             Object.assign(newState, {
                 currentProgramIndex: currentProgramIndex + 1,

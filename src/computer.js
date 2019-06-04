@@ -10,10 +10,13 @@ import {Messages} from "primereact/messages";
 import {Panel} from "primereact/panel";
 import {ScrollPanel} from "primereact/scrollpanel";
 import {Slider} from "primereact/slider";
+import {RadioButton} from "primereact/radiobutton";
+import {Spinner} from "primereact/spinner";
 import {Toolbar} from "primereact/toolbar";
 
 import {CH} from "./ch"
 import {Screen} from "./screen";
+import { program } from "@babel/types";
 
 export class Computer extends CH {
 
@@ -31,9 +34,39 @@ export class Computer extends CH {
         });
     }
 
+    setKernel = (newlength) => {
+        let value = parseInt(newlength) || 0;
+        if (value > 9999) return;
+        const {memoryLength} = this.state;
+        this.setState({
+            kernelLength: value,
+            memoryLength: Math.max(memoryLength, value + 1)
+        })
+    }
+
+    setMemory = (newlength) => {
+        let value = parseInt(newlength) || 0;
+        if (value > 9999) return;
+        const {kernelLength} = this.state;
+        this.setState({
+            memoryLength: value,
+            kernelLength: Math.min(kernelLength, value)
+        });
+    }
+
+    setMode = async(value) => {
+        const {mode} = this.state;
+        if (mode !== value) {
+            await this.clearMemory(true);
+            this.setState({
+                mode: value
+            }, this.initMemory)
+        }
+    }
+
     render() {
-        const { errors, memory, memoryLength, instructions, programs, printer, speed,
-            showInputDialog, inputMessage } = this.state;
+        const { mode, errors, memory, kernelLength, memoryLength, instructions, programs, printer, speed,
+            showInputDialog, inputMessage, run } = this.state;
         const variables = memory.filter(x => x.type === "var");
 
         return (
@@ -43,22 +76,46 @@ export class Computer extends CH {
                         <div className="p-col-12 p-md-4">
                             <Toolbar>
                                 <div className="p-md-12 p-lg-6 p-toolbar-group-left">
-                                    <Button tooltip="Nuevo" icon="fa fa-plus" style={{marginRight:".25em"}} tooltipOptions={{position: "top"}}
+                                    <Button disabled={mode === "kernel"} tooltip="Nuevo" icon="fa fa-plus" style={{marginRight:".25em"}} tooltipOptions={{position: "top"}}
                                         onClick={() => this.clearMemory(true)}/>
-                                    <Button tooltip="Cargar" icon="fa fa-upload" className="p-button-success" tooltipOptions={{position: "top"}}
+                                    <Button disabled={mode === "kernel"} tooltip="Cargar" icon="fa fa-upload" className="p-button-success" tooltipOptions={{position: "top"}}
                                         onClick={this.loadPrograms}/>
                                 </div>
                                 <div className="p-md-12 p-lg-6 p-toolbar-group-right">
-                                    <Button tooltip="Compilar" icon="fa fa-check" className="p-button-warning" style={{marginRight:".25em"}} tooltipOptions={{position: "top"}}
+                                    <Button disabled={mode === "kernel"} tooltip="Compilar" icon="fa fa-check" className="p-button-warning" style={{marginRight:".25em"}} tooltipOptions={{position: "top"}}
                                         onClick={this.compile}/>
-                                    <Button tooltip="Parar" icon="fa fa-stop" className="p-button-danger" style={{marginRight:".25em"}} tooltipOptions={{position: "top"}}
+                                    <Button disabled={mode === "kernel" || !run} tooltip="Parar" icon="fa fa-stop" className="p-button-danger" style={{marginRight:".25em"}} tooltipOptions={{position: "top"}}
                                         onClick={() => this.setState({run: false})}/>
-                                    <Button tooltip="Siguiente paso" icon="fa fa-step-forward" style={{marginRight:".25em"}} tooltipOptions={{position: "top"}}
+                                    <Button disabled={mode === "kernel" || instructions.length === 0} tooltip="Siguiente paso" icon="fa fa-step-forward" style={{marginRight:".25em"}} tooltipOptions={{position: "top"}}
                                         onClick={this.runNext}/>
-                                    <Button tooltip="Ejecutar todo" icon="fa fa-play" className="p-button-success" style={{marginRight:".25em"}} tooltipOptions={{position: "top"}}
+                                    <Button disabled={mode === "kernel" || instructions.length === 0} tooltip="Ejecutar todo" icon="fa fa-play" className="p-button-success" style={{marginRight:".25em"}} tooltipOptions={{position: "top"}}
                                         onClick={this.run}/>
                                 </div>
                             </Toolbar>
+                            <Panel header="Modo" style={{marginTop:"2em"}}>
+                                <div className="p-grid" style={{width:"250px",marginBottom:"10px"}}>
+                                    <div className="p-col-12">
+                                        <RadioButton inputId="rb1" name="mode" value="kernel" onChange={(e) => this.setMode(e.value)} checked={mode === "kernel"} />
+                                        <label htmlFor="rb1" className="p-radiobutton-label">Kernel</label>
+                                    </div>
+                                    <div className="p-col-12">
+                                        <RadioButton inputId="rb2" name="mode" value="user" onChange={(e) => this.setMode(e.value)} checked={mode === "user"} />
+                                        <label htmlFor="rb2" className="p-radiobutton-label">Usuario</label>
+                                    </div>
+                                </div>
+                            </Panel>
+                            <div className="p-inputgroup">
+                                <span className="p-inputgroup-addon">
+                                    Kernel
+                                </span>
+                                <Spinner disabled={mode !== "kernel"} value={kernelLength} onChange={(e) => this.setKernel(e.value)} min={0} max={9999} />
+                            </div>
+                            <div className="p-inputgroup">
+                                <span className="p-inputgroup-addon">
+                                    Memory
+                                </span>
+                                <Spinner disabled={mode !== "kernel"} value={memoryLength} onChange={(e) => this.setMemory(e.value)} min={2} max={9999} />
+                            </div>
                             <Panel header="Acumulador" style={{marginTop:"2em"}}>
                                 <ScrollPanel style={{width: "100%", height: "80px"}}>
                                     <h3><pre>{memory[0].value}</pre></h3>
