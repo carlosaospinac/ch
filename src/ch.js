@@ -34,14 +34,34 @@ export class CH extends React.Component {
         currentInputType: ""
     }
 
-    componentWillReceiveProps = ({programs}) => {
-        this.setState({
-            programs: programs
-        })
+    componentWillReceiveProps = async({programs}) => {
+        if (!programs || !programs.length) { return; }
+        let newPrograms = [{
+            ...programs[0],
+            arrival: 0,
+            lines: await this.getLines(programs[0])
+        }];
+        newPrograms[0].burst = newPrograms[0].lines.length;
+        for (let _i = 1; _i < programs.length; _i++) {
+            const program = programs[_i];
+            const lines = await this.getLines(program);
+            newPrograms.push({
+                ...program,
+                lines,
+                burst: lines.length,
+                arrival: newPrograms[_i - 1].arrival + parseInt(lines.length / 4)
+            });
+        }
+
+        this.setState({programs: newPrograms});
     }
 
     componentDidMount = () => {
         this.init();
+    }
+
+    componentDidUpdate = () => {
+        console.log(this.state);
     }
 
     init = () => {
@@ -116,6 +136,15 @@ export class CH extends React.Component {
         return instructions[currentInstructionIndex];
     }
 
+    getLines = async(program) => {
+        const lines = program.text.split("\n");
+        if (lines.length > (await this.getFreeMemory())) {
+            this.showAlert("Error", "Memoria insuficiente", "No se podrá compilar " + program.name);
+            return;
+        }
+        return lines.filter(line => line);
+    }
+
     compile = async() => {
         this.setState({mode: "user"});
         /* Carga todos los programas a memoria */
@@ -128,15 +157,10 @@ export class CH extends React.Component {
         let tagsFound = {};
         for (let i = 0; i < programs.length; i++) {
             const program = programs[i];
-
-            const lines = program.text.split("\n");
-            if (lines.length > (await this.getFreeMemory())) {
-                this.showAlert("Error", "Memoria insuficiente", "No se podrá compilar " + program.name);
-                return;
-            }
-
-            for (let j = 0; j < lines.length; j++) {
-                const line = lines[j].trim();
+            for (const line of program.lines) {
+                if (!line) {
+                    continue;
+                }
                 let newItem = {
                     type: "code",
                     programIndex: program.index,
@@ -159,12 +183,12 @@ export class CH extends React.Component {
             });
             await this.setState(({programs}) => {
                 programs[i].start = start;
-                programs[i].end = start + lines.length;
+                programs[i].end = start + program.lines.length;
                 return {
                     progams: programs
                 }
             });
-            start = lines.length;
+            start = program.lines.length;
         }
         await this.setState({
             memory: memory,

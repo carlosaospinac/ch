@@ -6,7 +6,7 @@ import * as serviceWorker from "./serviceWorker";
 
 import "font-awesome/css/font-awesome.css";
 import "primereact/resources/primereact.min.css";
-import "primereact/resources/themes/rhea/theme.css";
+import "primereact/resources/themes/nova-light/theme.css";
 import "primeflex/primeflex.css";
 import "primeicons/primeicons.css";
 

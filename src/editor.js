@@ -87,18 +87,18 @@ export class Editor extends CH {
             <div spellCheck={false}>
                 <Toolbar>
                     <div className="p-toolbar-group-left">
-                        <Button icon="fa fa-plus" tooltip="Nuevo" tooltipOptions={{position: "top"}}
+                        <Button icon="fa fa-plus" tooltip="Nuevo" tooltipOptions={{position: "top"}} style={{marginRight:".25em"}}
                             onClick={() => this.setState({code: ""}, this.clearMemory) } />
                         <Button icon="fa fa-upload" className="p-button-success" tooltip="Cargar" tooltipOptions={{position: "top"}}
                             onClick={this.uploadFile}/>
-                        <div className="p-inputgroup" style={{display: "inline", marginLeft: "10px"}}>
+                        <div className="p-inputgroup" style={{display: "inline", verticalAlign: "middle", marginLeft: ".25em", marginRight:".25em"}}>
                             <InputText placeholder="Sin título" value={name}
                                 onChange={e => this.setState({name: e.target.value})} />
                             <span className="p-inputgroup-addon">.ch</span>
                         </div>
-                        <Button icon="fa fa-download" className="p-button-info" tooltip="Descargar" tooltipOptions={{position: "top"}}
+                        <Button icon="fa fa-download" className="p-button-info" tooltip="Descargar" tooltipOptions={{position: "top"}} style={{marginRight:".25em"}}
                             onClick={this.downloadFile} />
-                        <Button icon="fa fa-search-plus" disabled={fontSizeIndex === this.fontSizes.length - 1}
+                        <Button icon="fa fa-search-plus" disabled={fontSizeIndex === this.fontSizes.length - 1} style={{marginRight:".25em"}}
                             onClick={() => this.setState({fontSizeIndex: Math.min(this.fontSizes.length - 1, fontSizeIndex + 1)})} />
                         <Button icon="fa fa-search-minus" disabled={fontSizeIndex === 0}
                             onClick={() => this.setState({fontSizeIndex: Math.max(0, fontSizeIndex - 1)})} />

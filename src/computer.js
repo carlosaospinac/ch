@@ -66,7 +66,7 @@ export class Computer extends CH {
 
     render() {
         const { mode, errors, memory, kernelLength, memoryLength, instructions, programs, printer, speed,
-            showInputDialog, inputMessage, run } = this.state;
+            showInputDialog, inputMessage, run, currentProgramIndex } = this.state;
         const variables = memory.filter(x => x.type === "var");
 
         return (
@@ -124,13 +124,17 @@ export class Computer extends CH {
                             <Accordion multiple={false}>
                                 <AccordionTab header="Programas">
                                     <DataTable scrollable={true} scrollHeight="200px"
-                                            value={programs.map((item, i) => {
+                                            value={programs.map(({name, arrival, burst}, i) => {
                                         return {
                                             index: i,
-                                            name: item.name
+                                            name,
+                                            arrival,
+                                            burst
                                         }
                                     })}>
                                         <Column field="index" header="Índice" />
+                                        <Column field="arrival" header="Llegada" />
+                                        <Column field="burst" header="Ráfaga" />
                                         <Column field="name" header="Nombre" />
                                     </DataTable>
                                 </AccordionTab>
@@ -180,6 +184,7 @@ export class Computer extends CH {
                     <div className="p-col-12 p-md-8">
                         {instructions.length > 0 && this.getCurrentInstruction() &&
                             <div>
+                                {programs[currentProgramIndex] && <h4>Programa actual: {programs[currentProgramIndex].name}</h4>}
                                 <h3>Velocidad: {speed}</h3>
                                 <Slider value={speed} onChange={(e) => this.setState({speed: e.value})} min={10} max={100} />
                                 <Panel header="Siguiente instrucción" style={{marginTop: "2em"}}>
