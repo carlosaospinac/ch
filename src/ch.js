@@ -31,7 +31,8 @@ export class CH extends React.Component {
         showInputDialog: false,
         inputMessage: "",
         currentInput: "",
-        currentInputType: ""
+        currentInputType: "",
+        enableSJF: false
     }
 
     componentWillReceiveProps = async({programs}) => {
@@ -150,7 +151,12 @@ export class CH extends React.Component {
         /* Carga todos los programas a memoria */
         await this.clearMemory();
 
+        if (this.state.enableSJF) {
+            await this.processSJF();
+        }
+
         const { programs } = this.state;
+
         let { memory } = this.state;
         let newItems = [], instructions = [];
         let start = 0;
@@ -185,7 +191,7 @@ export class CH extends React.Component {
                 programs[i].start = start;
                 programs[i].end = start + program.lines.length;
                 return {
-                    progams: programs
+                    programs: programs
                 }
             });
             start = program.lines.length;
@@ -194,6 +200,33 @@ export class CH extends React.Component {
             memory: memory,
             instructions: instructions
         });
+    }
+
+    processSJF = async() => {
+        const { programs } = this.state;
+        if (!programs.length) { return; }
+
+        let maxBurst = programs.reduce((max, { burst }) => {
+            return burst > max ? burst : max;
+        }, 0);
+        let sortedPrograms = programs.sort(function(programA, programB) {
+            return programA.arrival - programB.arrival;
+        })
+        let programsToRun = sortedPrograms.splice(0, 1);
+        let cumBurst = programsToRun[0].burst;
+        while (sortedPrograms.length) {
+            let newProgram = sortedPrograms.splice(
+                sortedPrograms.findIndex(({ burst }) => {
+                    return burst <= cumBurst && burst <= sortedPrograms.reduce((min, program0) => {
+                        return program0.burst < min ? program0.burst : min;
+                    }, maxBurst);
+                }),
+                1
+            )[0];
+            cumBurst += newProgram.burst;
+            programsToRun.push(newProgram)
+        }
+        await this.setState({ programs: programsToRun })
     }
 
     getNextFreePosition = () => {
@@ -210,7 +243,7 @@ export class CH extends React.Component {
         if (this.hasNext()) {
             await this.runInstruction(this.getCurrentInstruction());
         } else {
-            this.finish();
+            await this.finish();
         }
     }
 
@@ -383,9 +416,10 @@ export class CH extends React.Component {
     }
 
     splitInstruction = (instruction) => {
+        let endOperatorRegex = /(?<=\w)\b/;
         return [
-            instruction.substr(0,instruction.indexOf(" ")).trim(),
-            instruction.substr(instruction.indexOf(" ") + 1).trim()
+            instruction.substr(0,instruction.search(endOperatorRegex)).trim(),
+            instruction.substr(instruction.search(endOperatorRegex) + 1).trim()
         ];
     }
 
@@ -756,9 +790,7 @@ export class CH extends React.Component {
 
     finish = async(type="info", continues) => {
         const {currentProgramIndex} = this.state;
-        let newState = {
-            run: false
-        };
+        let newState = {};
         if (continues) {
             Object.assign(newState, {
                 currentProgramIndex: currentProgramIndex + 1,
@@ -766,6 +798,7 @@ export class CH extends React.Component {
             this.showAlert(type, "Programa " + this.getCurrentProgram().name + " ha finalizado.");
         } else {
             Object.assign(newState, {
+                run: false,
                 currentInstructionIndex: 0,
                 instructions: [],
                 tags: {}

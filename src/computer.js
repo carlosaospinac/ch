@@ -1,6 +1,7 @@
 import React from "react";
 import {Accordion,AccordionTab} from "primereact/accordion";
 import {Button} from "primereact/button";
+import {Checkbox} from 'primereact/checkbox';
 import {Column} from "primereact/column";
 import {DataTable} from "primereact/datatable";
 import {Dialog} from "primereact/dialog";
@@ -66,7 +67,7 @@ export class Computer extends CH {
 
     render() {
         const { mode, errors, memory, kernelLength, memoryLength, instructions, programs, printer, speed,
-            showInputDialog, inputMessage, run, currentProgramIndex } = this.state;
+            showInputDialog, inputMessage, run, currentProgramIndex, enableSJF } = this.state;
         const variables = memory.filter(x => x.type === "var");
 
         return (
@@ -92,15 +93,20 @@ export class Computer extends CH {
                                         onClick={this.run}/>
                                 </div>
                             </Toolbar>
-                            <Panel header="Modo" style={{marginTop:"2em"}}>
+                            <Panel header="Opciones" style={{marginTop:"2em"}}>
                                 <div className="p-grid" style={{width:"250px",marginBottom:"10px"}}>
-                                    <div className="p-col-12">
+                                    <div className="p-col-6">
                                         <RadioButton inputId="rb1" name="mode" value="kernel" onChange={(e) => this.setMode(e.value)} checked={mode === "kernel"} />
-                                        <label htmlFor="rb1" className="p-radiobutton-label">Kernel</label>
+                                        <label htmlFor="rb1" className="p-radiobutton-label">Modo Kernel</label>
+                                    </div>
+                                    <div className="p-col-6">
+                                        <Checkbox disabled={mode !== "kernel"} inputId="cb3" value="sjf" tooltip="Algoritmo SJF (Shortest-Job-First)" tooltipOptions={{position: "bottom"}}
+                                            onChange={e => this.setState({enableSJF: e.checked})} checked={enableSJF}></Checkbox>
+                                        <label htmlFor="rb1" className="p-radiobutton-label">Habilitar SJF</label>
                                     </div>
                                     <div className="p-col-12">
                                         <RadioButton inputId="rb2" name="mode" value="user" onChange={(e) => this.setMode(e.value)} checked={mode === "user"} />
-                                        <label htmlFor="rb2" className="p-radiobutton-label">Usuario</label>
+                                        <label htmlFor="rb2" className="p-radiobutton-label">Modo Usuario</label>
                                     </div>
                                 </div>
                             </Panel>
@@ -124,7 +130,7 @@ export class Computer extends CH {
                             <Accordion multiple={false}>
                                 <AccordionTab header="Programas">
                                     <DataTable scrollable={true} scrollHeight="200px"
-                                            value={programs.map(({name, arrival, burst}, i) => {
+                                            value={programs.sort((a, b) => a.arrival - b.arrival).map(({name, arrival, burst}, i) => {
                                         return {
                                             index: i,
                                             name,
@@ -184,7 +190,8 @@ export class Computer extends CH {
                     <div className="p-col-12 p-md-8">
                         {instructions.length > 0 && this.getCurrentInstruction() &&
                             <div>
-                                {programs[currentProgramIndex] && <h4>Programa actual: {programs[currentProgramIndex].name}</h4>}
+                                pI: {currentProgramIndex}
+                                {programs[currentProgramIndex] && <h4>{programs[currentProgramIndex].name}</h4>}
                                 <h3>Velocidad: {speed}</h3>
                                 <Slider value={speed} onChange={(e) => this.setState({speed: e.value})} min={10} max={100} />
                                 <Panel header="Siguiente instrucción" style={{marginTop: "2em"}}>
