@@ -17,7 +17,6 @@ import {Toolbar} from "primereact/toolbar";
 
 import {CH} from "./ch"
 import {Screen} from "./screen";
-import { program } from "@babel/types";
 
 export class Computer extends CH {
 
@@ -130,7 +129,7 @@ export class Computer extends CH {
                             <Accordion multiple={false}>
                                 <AccordionTab header="Programas">
                                     <DataTable scrollable={true} scrollHeight="200px"
-                                            value={programs.sort((a, b) => a.arrival - b.arrival).map(({name, arrival, burst}, i) => {
+                                            value={programs.map(({name, arrival, burst}, i) => {
                                         return {
                                             index: i,
                                             name,

@@ -147,6 +147,16 @@ export class CH extends React.Component {
     }
 
     compile = async() => {
+        const copy = (o) => {
+            let output, v, key;
+            output = Array.isArray(o) ? [] : {};
+            for (key in o) {
+                v = o[key];
+                output[key] = (typeof v === "object") ? copy(v) : v;
+            }
+            return output;
+        }
+
         this.setState({mode: "user"});
         /* Carga todos los programas a memoria */
         await this.clearMemory();
@@ -155,7 +165,7 @@ export class CH extends React.Component {
             await this.processSJF();
         }
 
-        const { programs } = this.state;
+        let programs = copy(this.state.programs);
 
         let { memory } = this.state;
         let newItems = [], instructions = [];
@@ -184,49 +194,35 @@ export class CH extends React.Component {
                     tagsFound[i + "_" + ins[1]] = parseInt(ins[2]) + start
                 }
             }
-            await this.setState({
-                tags: tagsFound
-            });
-            await this.setState(({programs}) => {
-                programs[i].start = start;
-                programs[i].end = start + program.lines.length;
-                return {
-                    programs: programs
-                }
-            });
+            programs[i].start = start;
+            programs[i].end = start + program.lines.length;
             start = program.lines.length;
         }
         await this.setState({
+            tags: tagsFound,
+            programs: programs,
             memory: memory,
             instructions: instructions
         });
     }
 
     processSJF = async() => {
-        const { programs } = this.state;
+        let programs = Object.assign([], this.state.programs);
         if (!programs.length) { return; }
 
-        let maxBurst = programs.reduce((max, { burst }) => {
-            return burst > max ? burst : max;
-        }, 0);
-        let sortedPrograms = programs.sort(function(programA, programB) {
-            return programA.arrival - programB.arrival;
-        })
-        let programsToRun = sortedPrograms.splice(0, 1);
-        let cumBurst = programsToRun[0].burst;
-        while (sortedPrograms.length) {
-            let newProgram = sortedPrograms.splice(
-                sortedPrograms.findIndex(({ burst }) => {
-                    return burst <= cumBurst && burst <= sortedPrograms.reduce((min, program0) => {
-                        return program0.burst < min ? program0.burst : min;
-                    }, maxBurst);
-                }),
-                1
-            )[0];
-            cumBurst += newProgram.burst;
-            programsToRun.push(newProgram)
+        let totalTime = programs.reduce((total, x) => total + x.burst, 0);
+        let sortedPrograms = [];
+        let t = 0;
+        let filterLessArrival = x => x.arrival <= t;
+        while (t < totalTime) {
+            let nextIndex = programs
+                .sort((a, b) => a.burst - b.burst)
+                .findIndex(filterLessArrival);
+            let next = programs.splice(nextIndex, 1)[0];
+            t += next.burst;
+            sortedPrograms.push(next);
         }
-        await this.setState({ programs: programsToRun })
+        await this.setState({ programs: sortedPrograms })
     }
 
     getNextFreePosition = () => {
