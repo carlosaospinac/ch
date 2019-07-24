@@ -32,6 +32,11 @@ export class CH extends React.Component {
         inputMessage: "",
         currentInput: "",
         currentInputType: "",
+        processPlanning: "FCFS",
+        processPlanningOptions: [
+            {label: "FCFS (First-Come-First-Served)", value: "FCFS"},
+            {label: "SJF (Shortest-Job-First)", value: "SJF"},
+        ],
         enableSJF: false
     }
 
@@ -161,7 +166,7 @@ export class CH extends React.Component {
         /* Carga todos los programas a memoria */
         await this.clearMemory();
 
-        if (this.state.enableSJF) {
+        if (this.state.processPlanning === "SJF") {
             await this.processSJF();
         }
 
