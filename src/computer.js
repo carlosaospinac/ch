@@ -5,6 +5,7 @@ import {Checkbox} from 'primereact/checkbox';
 import {Column} from "primereact/column";
 import {DataTable} from "primereact/datatable";
 import {Dialog} from "primereact/dialog";
+import {Dropdown} from 'primereact/dropdown';
 import {InputText} from "primereact/inputtext";
 import {Growl} from "primereact/growl";
 import {Messages} from "primereact/messages";
@@ -66,7 +67,7 @@ export class Computer extends CH {
 
     render() {
         const { mode, errors, memory, kernelLength, memoryLength, instructions, programs, printer, speed,
-            showInputDialog, inputMessage, run, currentProgramIndex, enableSJF } = this.state;
+            showInputDialog, inputMessage, run, currentProgramIndex, processPlanning, processPlanningOptions } = this.state;
         const variables = memory.filter(x => x.type === "var");
 
         return (
@@ -94,14 +95,13 @@ export class Computer extends CH {
                             </Toolbar>
                             <Panel header="Opciones" style={{marginTop:"2em"}}>
                                 <div className="p-grid" style={{width:"250px",marginBottom:"10px"}}>
-                                    <div className="p-col-6">
+                                    <div className="p-col-12">
                                         <RadioButton inputId="rb1" name="mode" value="kernel" onChange={(e) => this.setMode(e.value)} checked={mode === "kernel"} />
                                         <label htmlFor="rb1" className="p-radiobutton-label">Modo Kernel</label>
                                     </div>
-                                    <div className="p-col-6">
-                                        <Checkbox disabled={mode !== "kernel"} inputId="cb3" value="sjf" tooltip="Algoritmo SJF (Shortest-Job-First)" tooltipOptions={{position: "bottom"}}
-                                            onChange={e => this.setState({enableSJF: e.checked})} checked={enableSJF}></Checkbox>
-                                        <label htmlFor="rb1" className="p-radiobutton-label">Habilitar SJF</label>
+                                    <div className="p-col-12">
+                                        <Dropdown disabled={mode !== "kernel"} value={processPlanning} options={processPlanningOptions} onChange={(e) => {this.setState({processPlanning: e.value})}}
+                                            placeholder="Método de PdP"  tooltip="Algoritmo planificación de procesos" tooltipOptions={{position: "right"}}/>
                                     </div>
                                     <div className="p-col-12">
                                         <RadioButton inputId="rb2" name="mode" value="user" onChange={(e) => this.setMode(e.value)} checked={mode === "user"} />
